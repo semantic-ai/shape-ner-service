@@ -6,7 +6,7 @@ from string import Template
 from escape_helpers import sparql_escape_uri, sparql_escape_string
 
 from decide_ai_service_base.task import DecisionTask
-from decide_ai_service_base.sparql_config import get_prefixes_for_query, GRAPHS, TASK_OPERATIONS, AGENT_TYPES, LANGUAGE_CODE_TO_URI
+from decide_ai_service_base.sparql_config import get_prefixes_for_query, GRAPHS, AGENT_TYPES, LANGUAGE_CODE_TO_URI
 from decide_ai_service_base.util import (
     get_agent_uri
 )
@@ -17,11 +17,12 @@ from ..library.entity_projections import project_spans
 from .dedup import get_existing_annotations
 
 SEGMENTATION_COMPONENT = "http://lblod.data.gift/id/components/segmentation/v1.0.0"
+SHAPE_NER_OPERATION = "http://lblod.data.gift/id/jobs/concept/TaskOperation/shape-ner"
 
 class SegmentationTask(DecisionTask):
     """Run the marked segmentation model and store segment spans as annotations."""
 
-    __task_type__ = TASK_OPERATIONS["segmentation"]
+    __task_type__ = SHAPE_NER_OPERATION
 
     def fetch_english_expression_uri(self) -> Optional[str]:
         """

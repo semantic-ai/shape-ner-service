@@ -224,12 +224,57 @@ class LlmConfig(BaseModel):
     )
 
 
+class ShapeConfig(BaseModel):
+    """Input of the shape-driven segmentor (LLMSegmentorWithShape). Relative paths are resolved against the project root."""
+
+    shape_path: str = Field(
+        default="shapes/notulen-shape.ttl",
+        description="SHACL shape (Turtle) describing what to segment"
+    )
+    node_shapes: list[str] = Field(
+        default=[
+            "https://data.vlaanderen.be/shacl/besluit-publicatie#BesluitShape",
+            "https://data.vlaanderen.be/shacl/besluit-publicatie#ArtikelShape",
+        ],
+        description="Node shapes of the SHACL shape to segment; empty for all"
+    )
+    example_paths: list[str] = Field(
+        default=["shapes/notulen-example.html"],
+        description="Example HTML documents whose element ids match the shape's usage notes"
+    )
+    ontologies: list[str] = Field(
+        default=["https://data.vlaanderen.be/ns/besluit", "http://data.europa.eu/eli/ontology"],
+        description="Vocabularies whose rdfs:subClassOf hierarchy decides which shapes an existing entity can play"
+    )
+    usage_note_predicate: str = Field(
+        default="http://lblod.data.gift/vocabularies/besluit/usageNote",
+        description="Property of the shape's node and property shapes holding the id of their example element"
+    )
+    text_predicate: str = Field(
+        default="https://data.europarl.europa.eu/def/epvoc#expressionContent",
+        description="Property of an input resource holding the text to segment"
+    )
+    same_as_predicate: str = Field(
+        default="http://data.europa.eu/eli/ontology#title",
+        description="Property whose (almost) equal value identifies the same entity in the triplestore, e.g. a title"
+    )
+    same_as_class: str | None = Field(
+        default="http://data.vlaanderen.be/ns/besluit#Besluit",
+        description="Segmented entities of this class are linked to the same entity in the triplestore (an original); "
+                    "none to link nothing"
+    )
+
+
 class SegmentationConfig(BaseModel):
     """Segmentation model configuration for document structure extraction."""
 
     llm: LlmConfig = Field(
         default_factory=LlmConfig,
         description="LLM provider and model settings"
+    )
+    shape: ShapeConfig = Field(
+        default_factory=ShapeConfig,
+        description="Shape, examples and vocabularies for the shape-driven segmentor"
     )
     max_new_tokens: int = Field(
         default=14000,

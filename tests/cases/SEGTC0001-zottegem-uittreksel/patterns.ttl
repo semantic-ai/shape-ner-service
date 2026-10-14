@@ -1,0 +1,40 @@
+# Patterns the output of SEGTC0001 must match (see tests/support.py).
+@prefix test: <http://example.org/segmentation-test#> .
+@prefix besluit: <http://data.vlaanderen.be/ns/besluit#> .
+@prefix eli: <http://data.europa.eu/eli/ontology#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix oa: <http://www.w3.org/ns/oa#> .
+
+[] a test:Case ;
+    test:original <https://lblod.zottegem.be/LBLODWeb/id/besluiten/50af1c5e78a1407699733aaf1df121d2-70589> ;
+    test:count [ test:class besluit:Besluit ; test:number 1 ] ,
+               [ test:class besluit:Artikel ; test:number 6 ] .
+
+# The expression is the decision
+<http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> a besluit:Besluit ;
+    # The motivation is everything between the title and the decision itself
+    besluit:motivering "Bevoegd Jenne De Potter Bevoegdheid Artikel 40, §3 van het Decreet Lokaal Bestuur."^^test:startsWith ,
+                       "Wetten en reglementen Het decreet van 16 mei 2008"^^test:contains ,
+                       "Verwijzingsdocumenten AP. 18 september 2023. Track changes."^^test:contains ,
+                       "Verantwoording In 2023 werd er een aangepaste verkeerscirculatie ingevoerd"^^test:contains ,
+                       "Stemmen Met algemene stemmen"^^test:contains ;
+    prov:value "Artikel 1. Invoeren van éénrichtingsverkeer in de Grotstraat"^^test:startsWith ;
+    eli:has_part [ a besluit:Artikel ; eli:number "1" ;
+                   prov:value "Invoeren van éénrichtingsverkeer in de Grotstraat, uitgezonderd fietsers en bromfietsers klasse A."^^test:startsWith ;
+                   prov:value "Artikel 1.1. Deze maatregel zal aangeduid worden door:"^^test:contains ] ,
+                 [ a besluit:Artikel ; eli:number "2" ;
+                   prov:value "Invoeren van éénrichtingsverkeer in de Parkstraat, uitgezonderd fietsers en bromfietsers klasse A."^^test:startsWith ] ,
+                 [ a besluit:Artikel ; eli:number "3" ;
+                   prov:value "Invoeren van geschrankt parkeren in de Parkstraat."^^test:startsWith ] ,
+                 [ a besluit:Artikel ; eli:number "4" ;
+                   prov:value "Plaatsen van een verkeerseiland in de Parkstraat"^^test:startsWith ] ,
+                 [ a besluit:Artikel ; eli:number "5" ;
+                   prov:value "Invoeren van parkeerverbod in de Leenstraat."^^test:startsWith ] ,
+                 [ a besluit:Artikel ; eli:number "6" ;
+                   prov:value "Dit aanvullend reglement zal ter kennisgeving worden toegestuurd"^^test:startsWith ] .
+
+# The decision is linked to the original from the HTML publication, which has the same title
+[] a oa:Annotation ;
+    oa:hasTarget <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> ;
+    oa:hasBody <https://lblod.zottegem.be/LBLODWeb/id/besluiten/50af1c5e78a1407699733aaf1df121d2-70589> ;
+    oa:motivatedBy oa:linking .

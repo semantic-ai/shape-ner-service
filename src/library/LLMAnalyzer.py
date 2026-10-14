@@ -37,6 +37,8 @@ class LLMAnalyzer:
         self._max_retries = max_retries
         self._retry_delay = retry_delay
         self._task = task
+        # Last LangChain response, e.g. for its usage_metadata (token counts)
+        self.last_response = None
         self._endpoint = endpoint or base_url or "local"
 
         kwargs: Dict[str, Any] = {"temperature": temperature}
@@ -181,6 +183,7 @@ class LLMAnalyzer:
                 from decide_ai_service_base.ai_logging import record_llm_call
                 record_llm_call(self._task, self._endpoint, self.model_name, response, duration)
 
+            self.last_response = response
             result = self._parse_json(response.content)
 
             if postprocess and 'spans' in result:

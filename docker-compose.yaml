@@ -1,5 +1,5 @@
 services:
-  ner-service:
+  shape-ner-service:
     build:
       context: .
     cap_add:
@@ -7,18 +7,19 @@ services:
     security_opt:
       - seccomp=unconfined
     command: >
-      uv run python -m debugpy --wait-for-client --listen 0.0.0.0:5678 -m uvicorn web:app --host
+      uv run python -m debugpy --listen 0.0.0.0:5678 -m uvicorn web:app --host
       0.0.0.0 --port 80 --proxy-headers --timeout-keep-alive 300 --workers 1
       --reload --reload-dir /app
     ports:
       - "8086:80"
       - "5678:5678"
+      - "5679:5679" # debugpy for tests, see .vscode/launch.json
     networks:
-      - app-decide_default
+      app-decide_default:
+        aliases:
+          - shape-ner-service
     environment:
-      SEGMENTATION__LLM__API_KEY: "SECRET" # API key for the segmentation LLM provider (OpenAI, Mistral...)
-      TRANSLATION__ETRANSLATION__BEARER_TOKEN: "SECRET" # When translation provider is etranslation, this bearer token will be used for authentication
-      TRANSLATION__ETRANSLATION__PASSWORD: "SECRET" # When translation provider is etranslation and bearer token is not set or empty, this password (in combination with the username) will be used for authentication
+      SEGMENTATION__LLM__API_KEY: ${SEGMENTATION__LLM__API_KEY} # API key for the segmentation LLM provider (OpenAI, Mistral...), set in .env
       MODE: "development"
       TARGET_GRAPH: http://mu.semte.ch/graphs/harvesting
       JOB_GRAPH: http://mu.semte.ch/graphs/harvesting
@@ -37,7 +38,7 @@ services:
       ALLOW_MU_AUTH_SUDO: true
       CONFIG_PATH: /config/config.json
       COMPOSE_FILE: /tmp/docker-compose.yaml
-      COMPOSE_SERVICE: ner-service
+      COMPOSE_SERVICE: shape-ner-service
     restart: no
     volumes:
       - ./:/app

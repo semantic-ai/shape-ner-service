@@ -2,3 +2,4 @@
 .git
 .nox
 nominatim-data
+.env

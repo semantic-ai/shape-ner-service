@@ -4,7 +4,7 @@ from threading import Lock
 from helpers import logger
 
 from src.airo import register_airo
-from src.task import TranslationTask, SegmentationTask, EntityExtractionTask, EXTRACTOR_COMPONENT, SEGMENTATION_COMPONENT, TRANSLATION_COMPONENT
+from src.task import SegmentationTask, SEGMENTATION_COMPONENT
 from src.translation_plugin_etranslation import _callback_storage, _callback_lock
 from decide_ai_service_base.util import fail_busy_and_scheduled_tasks, TaskProcessor, wait_for_triplestore, process_open_tasks, write_agent_info
 
@@ -12,6 +12,11 @@ from decide_ai_service_base.schema import NotificationResponse, TaskOperationsRe
 from decide_ai_service_base.task import Task
 
 from fastapi import APIRouter, BackgroundTasks, Request
+
+# The template mounts every APIRouter found in this module, so the test job
+# endpoint only exists when running in development mode
+if os.environ.get("MODE") == "development":
+    from src.test_job import router as test_job_router
 
 
 _open_tasks_lock = Lock()
@@ -21,9 +26,7 @@ _open_tasks_lock = Lock()
 async def startup_event():
     logger.info("Startup running in PID %s", os.getpid())
     wait_for_triplestore()
-    write_agent_info("http://lblod.data.gift/id/components/named-entity-recognition/v1.0.0", EXTRACTOR_COMPONENT)
-    write_agent_info("http://lblod.data.gift/id/components/named-entity-recognition/v1.0.0", SEGMENTATION_COMPONENT)
-    write_agent_info("http://lblod.data.gift/id/components/named-entity-recognition/v1.0.0", TRANSLATION_COMPONENT)
+    write_agent_info("http://lblod.data.gift/id/components/shape-ner/v1.0.0", SEGMENTATION_COMPONENT)
 
     fail_busy_and_scheduled_tasks()
     register_airo()

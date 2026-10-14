@@ -39,6 +39,19 @@
       "base_url": "https://api.mistral.ai/v1",
       "temperature": 0.1
     },
+    "shape": {
+      "shape_path": "shapes/notulen-shape.ttl",
+      "node_shapes": [
+        "https://data.vlaanderen.be/shacl/besluit-publicatie#BesluitShape",
+        "https://data.vlaanderen.be/shacl/besluit-publicatie#ArtikelShape"
+      ],
+      "example_paths": ["shapes/notulen-example.html"],
+      "ontologies": ["https://data.vlaanderen.be/ns/besluit", "http://data.europa.eu/eli/ontology"],
+      "usage_note_predicate": "http://lblod.data.gift/vocabularies/besluit/usageNote",
+      "text_predicate": "https://data.europarl.europa.eu/def/epvoc#expressionContent",
+      "same_as_predicate": "http://data.europa.eu/eli/ontology#title",
+      "same_as_class": "http://data.vlaanderen.be/ns/besluit#Besluit"
+    },
     "max_new_tokens": 20000,
     "max_gap": 5
   }

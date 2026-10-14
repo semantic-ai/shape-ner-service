@@ -23,3 +23,9 @@ projection.ipynb
 config_dev.json
 testing.ipynb
 translation_testing.ipynb
+
+# Local secrets
+.env
+
+# Results of test runs
+tests/cases/*/out/

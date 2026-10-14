@@ -35,6 +35,11 @@ For eTranslation callback setup, see [fastapi_callback_setup.md](fastapi_callbac
 - `POST /delta` - Receive delta notifications for task processing
 - `GET /task/operations` - List available task operations
 - `POST /etranslation/callback` - eTranslation service callback endpoint
+- `POST /test/job` - **Development only** (`MODE=development`). Inserts a `shape-ner` job with a SHACL target shape and a scheduled `singleton-job` task, so the job-controller and annotation-job-splitter create the `shape-ner` tasks. Body: either `target_nodes` (expression URIs), or `target_class` together with `target_graph`:
+  ```bash
+  curl -X POST localhost:8086/test/job -H 'Content-Type: application/json' \
+    -d '{"target_nodes": ["http://data.lblod.info/id/expressions/<uuid>"]}'
+  ```
 
 ## Configuration
 
