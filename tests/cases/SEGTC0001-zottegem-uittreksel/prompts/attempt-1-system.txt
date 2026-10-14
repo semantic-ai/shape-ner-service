@@ -22,6 +22,9 @@
       where its part starts to where it ends, including any headings and
       sections inside it. Only text between two parts, outside all markers,
       belongs to no property.
+    - A relation's parts are marked [key → structure key] ... [/key]: each is an
+      occurrence of that structure of its own, which the relation refers to
+      with "ref", one ref per part.
 
     EXISTING ENTITIES
     - When an occurrence is one of the existing entities, enrich that entity
@@ -54,6 +57,9 @@
       2) is part of the occurrence it belongs to, not a separate occurrence of
       that structure: the occurrence includes its sub-parts and ends where the
       next part at the same level starts (2 after 1).
+    - One occurrence holds all of its properties: never split it into several
+      occurrences of the same structure, e.g. at a heading between two of its
+      properties.
     - Occurrences of different structures are always returned separately, also
       when one contains the other.
     - Copy everything between the start and the end of the text, including page
@@ -74,7 +80,7 @@
 
     STRUCTURES
     [S1] Besluit (instance of <http://data.vlaanderen.be/ns/besluit#Besluit>)
-  Example, with its properties marked [key] ... [/key]: Openbare titel besluit: [S1.P9] 8/2. Aanvullende belasting op de personenbelasting voor 2024 -2025 [/S1.P9] Korte openbare beschrijving: [S1.P1] De gemeenteraad keurde de aanvullende belasting op de personenbelasting voor 2024 en 2025 met 7,9% goed. De grondslag blijft ongewijzigd. [/S1.P1] [S1.P7] De gemeenteraad, Juridische grond Gelet op de artikelen 464 tot en met 470/2 van het Wetboek van de inkomstenbelastingen 1992 Gelet op het Decreet over het lokaal bestuur Verantwoording Overwegende dat de financiële toestand van de gemeente de invoering vergt van alle rendabele belastingen; Stemming Met algemene stemmen [/S1.P7] Beslist, [S1.P5] [S1.P4] Artikel 1 Voor de aanslagjaren 2024 en 2025 wordt een aanvullende belasting gevestigd ten laste van de rijksinwoners die belastbaar zijn in de gemeente op 1 januari van het aanslagjaar. [/S1.P4] [/S1.P5]
+  Example, with its properties marked [key] ... [/key]: Openbare titel besluit: [S1.P9] 8/2. Aanvullende belasting op de personenbelasting voor 2024 -2025 [/S1.P9] Korte openbare beschrijving: [S1.P1] De gemeenteraad keurde de aanvullende belasting op de personenbelasting voor 2024 en 2025 met 7,9% goed. De grondslag blijft ongewijzigd. [/S1.P1] [S1.P7] De gemeenteraad, Juridische grond Gelet op de artikelen 464 tot en met 470/2 van het Wetboek van de inkomstenbelastingen 1992 Gelet op het Decreet over het lokaal bestuur Verantwoording Overwegende dat de financiële toestand van de gemeente de invoering vergt van alle rendabele belastingen; Stemming Met algemene stemmen [/S1.P7] Beslist, [S1.P5] [S1.P4 → S2] Artikel 1 Voor de aanslagjaren 2024 en 2025 wordt een aanvullende belasting gevestigd ten laste van de rijksinwoners die belastbaar zijn in de gemeente op 1 januari van het aanslagjaar. [/S1.P4] [S1.P4 → S2] Artikel 2 De belasting wordt vastgesteld op 7,9 % van de overeenkomstig artikel 466 van het Wetboek van de inkomstenbelastingen 1992 berekende grondslag voor hetzelfde aanslagjaar. Deze belasting wordt gevestigd op basis van het inkomen dat de belastingplichtige heeft verworven in het aan het aanslagjaar voorafgaande jaar. [/S1.P4] [/S1.P5]
   Properties:
     [S1.P1] beschrijving: Een beknopte beschrijving van het besluit. (path <http://data.europa.eu/eli/ontology#description>, datatype <http://www.w3.org/2001/XMLSchema#string>, min 0, max 1)
         Example: De gemeenteraad keurde de aanvullende belasting op de personenbelasting voor 2024 en 2025 met 7,9% goed. De grondslag blijft ongewijzigd.
@@ -83,9 +89,9 @@
     [S1.P3] citeeropschrift: De beknopte titel of officiële korte naam van een decreet, wet, besluit... Deze wordt officieel vastgelegd. Deze benaming wordt in de praktijk gebruikt om naar de rechtsgrond te verwijzen. (path <http://data.europa.eu/eli/ontology#title_short>, datatype <http://www.w3.org/2001/XMLSchema#string>, min 0, max 1)
         Example: Aanvullende belasting op de personenbelasting voor 2024 -2025
     [S1.P4] heeftDeel: Duidt een artikel aan van dit besluit. (path <http://data.europa.eu/eli/ontology#has_part>, relation to an instance of <http://data.vlaanderen.be/ns/besluit#Artikel>, give a ref, min 0)
-        Example: Artikel 1 Voor de aanslagjaren 2024 en 2025 wordt een aanvullende belasting gevestigd ten laste van de rijksinwoners die belastbaar zijn in de gemeente op 1 januari van het aanslagjaar.
+        Example of the S2 occurrence it refers to (give its "ref"): Artikel 1 Voor de aanslagjaren 2024 en 2025 wordt een aanvullende belasting gevestigd ten laste van de rijksinwoners die belastbaar zijn in de gemeente op 1 januari van het aanslagjaar.
     [S1.P5] inhoud: De beschrijving van de beoogde rechtsgevolgen, het zogenaamde beschikkend gedeelte. (path <http://www.w3.org/ns/prov#value>, min 1, max 1)
-        Example: Artikel 1 Voor de aanslagjaren 2024 en 2025 wordt een aanvullende belasting gevestigd ten laste van de rijksinwoners die belastbaar zijn in de gemeente op 1 januari van het aanslagjaar.
+        Example: Artikel 1 Voor de aanslagjaren 2024 en 2025 wordt een aanvullende belasting gevestigd ten laste van de rijksinwoners die belastbaar zijn in de gemeente op 1 januari van het aanslagjaar. Artikel 2 De belasting wordt vastgesteld op 7,9 % van de overeenkomstig artikel 466 van het Wetboek van de inkomstenbelastingen 1992 berekende grondslag voor hetzelfde aanslagjaar. Deze belasting wordt gevestigd op…
     [S1.P6] inwerkingtreding: De datum waarop de regelgeving van kracht wordt. (path <http://data.europa.eu/eli/ontology#first_date_entry_in_force>, datatype <http://www.w3.org/2001/XMLSchema#date>, min 0, max 1)
         Example (hidden metadata, not visible text): 2024-01-08
     [S1.P7] motivering: Beschrijving van de juridische en feitelijke motivering achter de beslissing die wordt uitgedrukt in het besluit. (path <http://data.vlaanderen.be/ns/besluit#motivering>, datatype <http://www.w3.org/1999/02/22-rdf-syntax-ns#langString>, min 1, max 1)

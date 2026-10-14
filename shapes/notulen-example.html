@@ -1,7 +1,7 @@
 <!-- Example for the notulen shapes, from https://github.com/lblod/lib-decision-shapes/blob/master/src/examples/notulen.ts
      Extended locally: the motivation (besluit:motivering) has sub sections with headings, including the voting, to show
-     they belong to it; "Beslist," between the motivation and the content (prov:value) belongs to neither. Only the
-     first of its two articles is kept: it is the example of eli:has_part, so every article in the content is a part. -->
+     they belong to it; "Beslist," between the motivation and the content (prov:value) belongs to neither. Both
+     articles are parts (eli:has_part) of the content; only the first has ids, so it is the example of an article. -->
 <!DOCTYPE html>
 <html lang="nl" data-ember-extension="1">
 
@@ -655,6 +655,37 @@ class="c-template-content c-template-content--treatment">
                                     laste van de rijksinwoners die
                                     belastbaar zijn in de gemeente op 1
                                     januari van het aanslagjaar.</p>
+                                </div>
+                            </div>
+
+                            <div typeof="besluit:Artikel"
+                            property="eli:has_part"
+                            resource="http://data.lblod.info/artikels/165c38ca-12eb-4be2-b71f-8450befb16e7">
+                            <div contenteditable="false">Artikel <span
+                                property="eli:number"
+                                datatype="xsd:string">2</span></div>
+                                <span typeof="skos:Concept"
+                                property="eli:language"
+                                resource="http://publications.europa.eu/resource/authority/language/NLD"
+                                style="style=&quot;display:none;&quot;"></span>
+                                <span property="eli:title"
+                                datatype="xsd:string"
+                                content="Artikel 2 van aanvullende
+                                belasting op de personenbelasting voor 2024
+                                -2025"></span>
+                                <div property="prov:value"
+                                datatype="xsd:string">
+                                <p data-indentation-level="0">De belasting
+                                    wordt
+                                    vastgesteld op 7,9 % van de
+                                    overeenkomstig artikel 466 van het
+                                    Wetboek van de inkomstenbelastingen 1992
+                                    berekende grondslag voor hetzelfde
+                                    aanslagjaar. Deze belasting wordt
+                                    gevestigd op basis van het inkomen dat
+                                    de belastingplichtige heeft verworven in
+                                    het aan het aanslagjaar voorafgaande
+                                    jaar.</p>
                                 </div>
                             </div>
                         </div>

@@ -11,13 +11,15 @@ To debug, start it under debugpy and attach with "Attach to pytest (Docker)" in 
 """
 import pytest
 from bs4 import BeautifulSoup
-from rdflib import URIRef
-from rdflib.namespace import SH
+from rdflib import Graph, Literal, Namespace, URIRef
+from rdflib.namespace import PROV, RDF, SH
 
 from src.config import get_config
 from tests.support import case_folders, load_case, temporary_task
 
 CASES = case_folders()
+BESLUIT = Namespace("http://data.vlaanderen.be/ns/besluit#")
+ELI = Namespace("http://data.europa.eu/eli/ontology#")
 
 
 def test_shape_input_comes_from_config(segmentor):
@@ -55,10 +57,83 @@ def test_prompt_has_the_examples_of_the_usage_notes(segmentor):
                 value, hidden = visible, False
             if len(value) > segmentor.EXAMPLE_MAX_LENGTH:
                 value = value[:segmentor.EXAMPLE_MAX_LENGTH].rstrip() + "…"
-            label = "Example (hidden metadata, not visible text)" if hidden else "Example"
+            # A relation's example is the occurrence it refers to
+            ref = segmentor._structure_of(prop["class"]) if prop["class"] else None
+            label = ("Example (hidden metadata, not visible text)" if hidden else
+                     f'Example of the {ref} occurrence it refers to (give its "ref")' if ref else "Example")
             assert f"        {label}: {value}\n" in segmentor.system_prompt, f"no example for {prop['key']} {prop['name']}"
             checked += 1
     assert checked, "no property has an example"
+
+
+def test_occurrence_examples_mark_every_part_of_a_relation(offline_segmentor):
+    segmentor = offline_segmentor
+    # The decision in the example has two articles: both are marked as parts, each one referred to with a ref
+    relations = [(definition, prop) for definition in segmentor.definitions for prop in definition["properties"]
+                 if prop.get("example", {}).get("ref") and definition.get("example")]
+    assert relations, "no occurrence example has a relation"
+    for definition, prop in relations:
+        marker = f"[{prop['key']} → {prop['example']['ref']}]"
+        assert definition["example"]["value"].count(marker) == 2, f"{marker} in {definition['example']['value']!r}"
+        assert f"[/{prop['key']}]" in definition["example"]["value"]
+
+
+@pytest.fixture(scope="module")
+def offline_segmentor():
+    """A segmentor that never calls the LLM, so it needs no API key."""
+    from tests.support import case_segmentor
+    return case_segmentor(record=False)
+
+
+def test_a_decision_split_in_two_is_one_decision(offline_segmentor):
+    # The LLM may split an uittreksel's decision at "BESLIST:" into its motivation and its content, with the relations
+    # to the articles on the second part. That part continues the first, and the one decision is the expression that
+    # holds the text, with the content and the relations of both parts
+    s = offline_segmentor
+    besluit, artikel = (s.definitions_by_class[str(BESLUIT[name])] for name in ("Besluit", "Artikel"))
+    key = {(definition["key"], prop["path"]): prop["key"]
+           for definition in (besluit, artikel) for prop in definition["properties"]}
+    title, motivation, content, has_part = (key[besluit["key"], str(path)] for path in
+                                            (ELI.title, BESLUIT.motivering, PROV.value, ELI.has_part))
+    number, article_content = key[artikel["key"], str(ELI.number)], key[artikel["key"], str(PROV.value)]
+    text = ("Uittreksel\n\n1. Invoeren van een parkeerverbod.\n\nVerantwoording\nDe straat is te smal.\n\nBESLIST:\n"
+            "Artikel 1. Invoeren van een parkeerverbod in de Kerkstraat.\n\nArtikel 2. Dit besluit treedt in werking.")
+    expression = URIRef("http://example.org/expression")
+    graph = Graph()
+    graph.add((expression, RDF.type, ELI.Expression))
+    graph.add((expression, s.text_predicate, Literal(text)))
+    types = {str(ELI.Expression)}
+    context = {"graph": graph, "language": "nl", "entities": {"E1": {
+        "uri": str(expression), "types": types,
+        "roles": [d["key"] for d in s.definitions if s._can_play(types, d["target_class"])]}}}
+    answer = {"segments": [
+        {"id": "N1", "shape": besluit["key"],
+         "text": "1. Invoeren van een parkeerverbod.\n\nVerantwoording\nDe straat is te smal.\n\nBESLIST:",
+         "properties": [{"property": title, "text": "1. Invoeren van een parkeerverbod."},
+                        {"property": motivation, "text": "Verantwoording\nDe straat is te smal."},
+                        {"property": content, "text": "BESLIST:"}]},
+        {"id": "N2", "shape": besluit["key"], "text": text[text.index("BESLIST:"):],
+         "properties": [{"property": content, "text": text[text.index("Artikel 1."):]},
+                        {"property": has_part, "ref": "N3"}, {"property": has_part, "ref": "N4"}]},
+        {"id": "N3", "shape": artikel["key"], "text": "Artikel 1. Invoeren van een parkeerverbod in de Kerkstraat.",
+         "properties": [{"property": number, "text": "1"},
+                        {"property": article_content, "text": "Invoeren van een parkeerverbod in de Kerkstraat."}]},
+        {"id": "N4", "shape": artikel["key"], "text": "Artikel 2. Dit besluit treedt in werking.",
+         "properties": [{"property": number, "text": "2"},
+                        {"property": article_content, "text": "Dit besluit treedt in werking."}]},
+    ]}
+
+    problems = []
+    segments = s._segments_from_answer(text, answer, problems, context)
+
+    assert problems == []
+    decisions = [segment for segment in segments if segment["shape"] == besluit["uri"]]
+    assert [(d["uri"], d["existing"]) for d in decisions] == [(str(expression), True)]
+    values = {prop["path"]: prop["text"] for prop in decisions[0]["properties"] if "ref" not in prop}
+    assert values[str(PROV.value)].startswith("Artikel 1.")
+    articles = [segment["uri"] for segment in segments if segment["shape"] == artikel["uri"]]
+    assert len(articles) == 2
+    assert sorted(prop["ref"] for prop in decisions[0]["properties"] if "ref" in prop) == sorted(articles)
 
 
 def test_properties_that_need_an_iri_are_left_out(segmentor):

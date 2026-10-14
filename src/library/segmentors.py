@@ -558,6 +558,9 @@ class LLMSegmentorWithShape(AbstractSegmentor):
       where its part starts to where it ends, including any headings and
       sections inside it. Only text between two parts, outside all markers,
       belongs to no property.
+    - A relation's parts are marked [key → structure key] ... [/key]: each is an
+      occurrence of that structure of its own, which the relation refers to
+      with "ref", one ref per part.
 
     EXISTING ENTITIES
     - When an occurrence is one of the existing entities, enrich that entity
@@ -590,6 +593,9 @@ class LLMSegmentorWithShape(AbstractSegmentor):
       2) is part of the occurrence it belongs to, not a separate occurrence of
       that structure: the occurrence includes its sub-parts and ends where the
       next part at the same level starts (2 after 1).
+    - One occurrence holds all of its properties: never split it into several
+      occurrences of the same structure, e.g. at a heading between two of its
+      properties.
     - Occurrences of different structures are always returned separately, also
       when one contains the other.
     - Copy everything between the start and the end of the text, including page
@@ -861,6 +867,9 @@ class LLMSegmentorWithShape(AbstractSegmentor):
                 # only typed values (e.g. dates) and IRIs are hidden metadata the text does not contain as such
                 if prop["example"]["source"] == "content" and prop["datatype"] in self.STRING_DATATYPES:
                     prop["example"]["hidden"] = False
+                # A relation's example is the text of the occurrence it refers to, given as a ref
+                if prop["class"]:
+                    prop["example"]["ref"] = self._structure_of(prop["class"])
                 # Without a usage note of its own, the occurrence is the closest typed element around its properties
                 if occurrence is None:
                     occurrence = element.find_parent(attrs={"typeof": True})
@@ -877,13 +886,30 @@ class LLMSegmentorWithShape(AbstractSegmentor):
             if not prop["usage_note"] or prop.get("example", {}).get("source") != "text":
                 continue
             element = copy.find(id=prop["usage_note"])
-            if element is not None:
-                element.insert_before(f" [{prop['key']}] ")
-                element.insert_after(f" [/{prop['key']}] ")
+            if element is None:
+                continue
+            ref = prop["example"].get("ref")
+            # Every value of the property in the occurrence is marked, e.g. each article of a decision
+            for part in self._same_property(copy, element):
+                part.insert_before(f" [{prop['key']}{f' → {ref}' if ref else ''}] ")
+                part.insert_after(f" [/{prop['key']}] ")
         value = " ".join(copy.get_text(" ").split())
         if len(value) > self.OCCURRENCE_EXAMPLE_MAX_LENGTH:
             value = value[:self.OCCURRENCE_EXAMPLE_MAX_LENGTH].rstrip() + "…"
         return {"value": value, "hidden": False, "source": "text", "annotated": True}
+
+    def _same_property(self, root, element) -> List[Any]:
+        """The elements in root with the element's RDFa property on the same resource, not on a resource inside it."""
+        if not element.get("property"):
+            return [element]
+        owner = element.find_parent(attrs={"typeof": True})
+        return [e for e in root.find_all(attrs={"property": element["property"]})
+                if e.find_parent(attrs={"typeof": True}) is owner]
+
+    def _structure_of(self, class_uri: str) -> Optional[str]:
+        """Key of the selected structure whose instances are instances of the class, e.g. "S2" for besluit:Artikel."""
+        return next((d["key"] for d in self.definitions
+                     if d["target_class"] and class_uri in self._superclasses(d["target_class"])), None)
 
     def _example_value(self, element) -> Dict[str, Any]:
         """Visible text of an example element, or its RDFa content/resource when the value is hidden metadata."""
@@ -902,7 +928,9 @@ class LLMSegmentorWithShape(AbstractSegmentor):
         if not example or not example["value"]:
             return []
         label = ("Example, with its properties marked [key] ... [/key]" if example.get("annotated") else
-                 "Example (hidden metadata, not visible text)" if example["hidden"] else "Example")
+                 "Example (hidden metadata, not visible text)" if example["hidden"] else
+                 f"Example of the {example['ref']} occurrence it refers to (give its \"ref\")" if example.get("ref") else
+                 "Example")
         return [f"{indent}{label}: {example['value']}"]
 
     def _render_shape_definitions(self) -> str:
@@ -1408,38 +1436,43 @@ class LLMSegmentorWithShape(AbstractSegmentor):
 
         return result
 
-    def _merge_into_text_holder(self, items: List[Dict[str, Any]], text: str, context: Dict[str, Any]) -> Dict[str, str]:
+    def _merge_into_text_holder(self, segments: List[Dict[str, Any]], text: str,
+                                context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
         An existing entity holding the whole text is the one occurrence of a structure it can be enriched as
-        (e.g. an uittreksel's expression is its one decision). When the answer has exactly one new occurrence of
-        such a structure, that occurrence is the entity: it becomes the entity, or, when the answer also enriches
-        the entity as that structure, its properties are added to that. Several new occurrences (e.g. the decisions
-        in notulen) stay new. Returns the merged occurrence ids -> entity key.
+        (e.g. an uittreksel's expression is its one decision). When there is exactly one new occurrence of such a
+        structure, that occurrence is the entity: it becomes the entity, or, when the answer also enriches the entity
+        as that structure, its properties are added to that. Several new occurrences (e.g. the decisions in notulen)
+        stay new. Runs after _merge_sub_parts, so that an occurrence the LLM split in parts counts once.
         """
-        aliases: Dict[str, str] = {}
-        holders = [key for key, entity in context["entities"].items()
-                   if self._holds_text(context["graph"], URIRef(entity["uri"]), text)]
-        for holder in holders[:1]:
-            enriched = [item for item in items if str(item.get("entity") or "").strip() == holder]
-            for role in context["entities"][holder]["roles"]:
-                new_items = [item for item in items
-                             if not item.get("entity") and str(item.get("shape", "")).strip() == role]
-                if len(new_items) != 1:
-                    continue
-                item = new_items[0]
-                same_role = next((e for e in enriched if str(e.get("shape", "")).strip() == role), None)
-                if same_role is not None:
-                    same_role["properties"] = list(same_role.get("properties") or []) + list(item.get("properties") or [])
-                    items.remove(item)
-                elif enriched:
-                    continue  # the answer enriches the entity as another structure
-                else:
-                    item["entity"] = holder
-                if item.get("id"):
-                    aliases[str(item["id"]).strip()] = holder
-                logger.info(f"Merged the only new {role} occurrence {item.get('id')!r} into {holder}, which holds the text")
-                break
-        return aliases
+        holder = next((key for key, entity in context["entities"].items()
+                       if self._holds_text(context["graph"], URIRef(entity["uri"]), text)), None)
+        if holder is None:
+            return segments
+        entity = context["entities"][holder]
+        enriched = [s for s in segments if s["existing"] and s["key"] == holder]
+        for role in entity["roles"]:
+            shape = self.key_lookup[role]["shape"]
+            new = [s for s in segments if not s["existing"] and s["shape"] == shape]
+            if len(new) != 1:
+                continue
+            occurrence = new[0]
+            target = next((s for s in enriched if s["shape"] == shape), None)
+            if target is None and enriched:
+                continue  # the answer enriches the entity as another structure
+            if target is None:
+                target_class = self.target_classes.get(shape)
+                target = {"key": holder, "shape": shape, "uri": entity["uri"], "uuid": None, "existing": True,
+                          "text": None, "start": None, "end": None,
+                          "add_type": target_class if target_class and target_class not in entity["types"] else None,
+                          "properties": []}
+                segments.append(target)
+            # As for an enriched entity, only the properties it does not have yet
+            existing_paths = self._defined_paths(context["graph"], URIRef(entity["uri"]), shape)
+            target["properties"] += [p for p in occurrence["properties"] if p["path"] not in existing_paths]
+            logger.info(f"Merged the only new {role} occurrence {occurrence['key']} into {holder}, which holds the text")
+            return self._redirect(segments, {occurrence["uri"]: target})
+        return segments
 
     # A heading line: at most this many words, ending with a colon, e.g. "BESLIST:" between a motivation and the
     # decision itself; a longer line ending with a colon introduces what follows, e.g. "... worden door:"
@@ -1481,8 +1514,9 @@ class LLMSegmentorWithShape(AbstractSegmentor):
         Within one structure, a numbered sub-part (e.g. "Artikel 1.1" after "Artikel 1") is part of the occurrence
         it belongs to, not an occurrence of its own: the parent is extended over it, and relations to the sub-part
         refer to the parent. So is an occurrence without a number of its own that follows a numbered one: it continues
-        it (e.g. the rest of an article after a page break). A parent property value that ran to the end of the parent (e.g. its content) is
-        extended as well.
+        it (e.g. the rest of an article after a page break, or a decision's content after its motivation). A parent
+        property value that ran to the end of the parent (e.g. its content) is extended as well. The sub-part's
+        relations, and its values of properties the parent has no value of, are the parent's.
         """
         merged: Dict[str, Dict[str, Any]] = {}  # sub-part URI -> parent
         new = sorted((s for s in segments if not s["existing"]), key=lambda s: s["start"])
@@ -1499,16 +1533,27 @@ class LLMSegmentorWithShape(AbstractSegmentor):
                 parent["text"] = source[parent["start"]:parent["end"]]
                 for prop in parent["properties"]:
                     if "ref" not in prop and prop["end"] == old_end:
-                        prop["end"] = parent["end"]
+                        # e.g. a content that was only the heading "BESLIST:" now runs on without it
+                        prop["start"], prop["end"] = self._without_heading_lines(source, prop["start"], parent["end"])
                         prop["text"] = source[prop["start"]:prop["end"]]
+                values = {prop["path"] for prop in parent["properties"] if "ref" not in prop}
+                parent["properties"] += [prop for prop in segment["properties"]
+                                         if "ref" in prop or prop["path"] not in values]
+                parent["properties"].sort(key=self._property_order)
                 merged[segment["uri"]] = parent
                 logger.info(f"Merged {'sub-part' if is_sub_part else 'continuation'} {segment['key']}"
                             f"{f' ({label[1]})' if label else ''} into {parent['key']} ({parent_label[1]})")
             else:
                 parents[segment["shape"]] = segment
-        if not merged:
-            return segments
+        return self._redirect(segments, merged) if merged else segments
 
+    @staticmethod
+    def _property_order(prop: Dict[str, Any]) -> tuple:
+        """Values in document order, relations last."""
+        return prop.get("start") is None, prop.get("start") or 0, -(prop.get("end") or 0)
+
+    def _redirect(self, segments: List[Dict[str, Any]], merged: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Leave out the merged entities (URI -> the entity they were merged into) and redirect relations to them."""
         kept = [s for s in segments if s["uri"] not in merged]
         for segment in kept:
             properties, seen = [], set()
@@ -1555,7 +1600,6 @@ class LLMSegmentorWithShape(AbstractSegmentor):
         by_key: Dict[str, Dict[str, Any]] = {}
         items = [dict(item) for item in result.get("segments", []) if isinstance(item, dict)]
         cursors: Dict[str, int] = {}
-        aliases = self._merge_into_text_holder(items, text, context)
 
         # First pass: the entities themselves, so that relations can refer to any of them
         resolved_items = []
@@ -1631,7 +1675,6 @@ class LLMSegmentorWithShape(AbstractSegmentor):
 
                 if self.properties_by_key[prop_key]["class"]:
                     ref = str(prop.get("ref") or "").strip()
-                    ref = aliases.get(ref, ref)
                     ref_uri = by_key[ref]["uri"] if ref in by_key else entities[ref]["uri"] if ref in entities else None
                     if ref_uri is None:
                         problems.append(f"{segment['key']}, property {prop_key}: relation needs a \"ref\" to an "
@@ -1657,9 +1700,10 @@ class LLMSegmentorWithShape(AbstractSegmentor):
                     "lang": context.get("language") if self.properties_by_key[prop_key]["datatype"] == str(RDF.langString) else None,
                 })
 
-            segment["properties"].sort(key=lambda p: (p.get("start") is None, p.get("start") or 0, -(p.get("end") or 0)))
+            segment["properties"].sort(key=self._property_order)
 
         segments = self._merge_sub_parts(segments, source)
+        segments = self._merge_into_text_holder(segments, text, context)
         problems += self._unlinked(segments)
 
         # Existing entities first, then new occurrences in document order
