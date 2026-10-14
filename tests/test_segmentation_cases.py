@@ -4,7 +4,7 @@ Segmentation test cases in case folders (tests/cases/<id>/, after the RML test c
 A normal run replays each case's recorded LLM answers, so it needs neither the LLM nor the triplestore. Per case it
 checks the recording (prompts, answers, output.ttl) and the case's own patterns.ttl, and then the general checks below,
 which hold for every segmentation. These are written in terms of the shape and the segmentor's settings, so anything
-specific to a document belongs in its patterns.ttl.
+specific to a document belongs in its patterns.ttl. To add a case, see tests/cases/README.md.
 
 Record a case (calls the LLM and writes prompts/, answers.json and output.ttl) with:
     docker compose exec shape-ner-service sh -c 'cd /app && SEGMENTATION_RECORD=1 uv run --with pytest pytest tests/test_segmentation_cases.py -k SEGTC0001'
