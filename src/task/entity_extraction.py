@@ -6,10 +6,12 @@ from escape_helpers import sparql_escape_uri, sparql_escape_string
 from rdflib import Graph
 
 from decide_ai_service_base.task import DecisionTask
-from decide_ai_service_base.sparql_config import get_prefixes_for_query, GRAPHS
+from decide_ai_service_base.sparql_config import get_prefixes_for_query, GRAPHS, AGENT_TYPES
+from decide_ai_service_base.util import get_agent_uri
+from decide_ai_service_base.annotation import NERAnnotation
 
 from ..config import get_config
-from .dedup import get_existing_outputs
+from .dedup import get_existing_annotations
 
 EXTRACTOR_COMPONENT = "http://lblod.data.gift/id/components/entity-extraction/v1.0.0"
 SHAPE_NER_OPERATION = "http://lblod.data.gift/id/jobs/concept/TaskOperation/shape-ner"
@@ -35,9 +37,9 @@ def create_segmentor(target_name: str):
 
 class EntityExtractionTask(DecisionTask):
     """
-    Extract the entities of each input of the task: segment it along the SHACL node shapes of its target (see
-    segmentation.targets in the app config, and LLMSegmentorWithShape) and write the result, the input with its
-    segments, to the AI graph.
+    Extract the entities of each input of the task: segment its text along the SHACL node shapes of its target (see
+    segmentation.targets in the app config, and LLMSegmentorWithShape), write the new entities to the AI graph, and
+    link each to the input with an annotation of where in its text the entity was found.
     """
 
     __task_type__ = SHAPE_NER_OPERATION
@@ -98,22 +100,27 @@ class EntityExtractionTask(DecisionTask):
             texts.setdefault(b["resource"]["value"], b["text"]["value"])
         return texts
 
-    def fetch_segmented(self, inputs: list[str], segmentor) -> set[str]:
+    def fetch_segmented(self, inputs: list[str]) -> set[str]:
+        """The inputs segmented before: the AI graph already holds annotations of this component on them."""
+        return set(get_existing_annotations(inputs, get_agent_uri(EXTRACTOR_COMPONENT)))
+
+    def annotate(self, resource: str, segments: list[dict]) -> list[str]:
         """
-        The inputs segmented before: the AI graph already holds a value of one of the shape's properties on them,
-        e.g. their parts (eli:has_part).
+        Link each new entity to the resource whose text it was found in: an oa:Annotation (oa:tagging) with the entity
+        as oa:hasBody and, as oa:hasTarget, the resource with the entity's position in its text. Returns their URIs.
         """
-        paths = sorted({prop["path"] for definition in segmentor.definitions for prop in definition["properties"]})
-        existing = get_existing_outputs(
-            inputs,
-            f"""
-            VALUES ?path {{ {" ".join(sparql_escape_uri(path) for path in paths)} }}
-            GRAPH {sparql_escape_uri(GRAPHS["ai"])} {{
-                ?expression ?path ?result .
-            }}
-            """,
-        )
-        return set(existing)
+        return [
+            NERAnnotation(
+                activity_id=self.task_uri,
+                source_uri=resource,
+                class_uri=segment["uri"],
+                start=segment["start"],
+                end=segment["end"],
+                agent=get_agent_uri(EXTRACTOR_COMPONENT),
+                agent_type=AGENT_TYPES["ai_component"],
+            ).add_to_triplestore_if_not_exists()
+            for segment in segments
+        ]
 
     def insert_segmentation(self, turtle: str) -> None:
         """Write the segmentation (Turtle from the segmentor) to the AI graph."""
@@ -155,8 +162,8 @@ class EntityExtractionTask(DecisionTask):
 
     def process(self):
         """
-        Extract the entities of each input that a target applies to, and write the result to the AI graph; the input,
-        with its segments, is passed forward.
+        Extract the entities of each input that a target applies to: write them to the AI graph, each with an
+        annotation linking it to the input, which is passed forward.
         """
         inputs = self.fetch_inputs()
         targets = self.match_targets(inputs)
@@ -175,7 +182,7 @@ class EntityExtractionTask(DecisionTask):
             texts = self.fetch_texts(resources, str(segmentor.text_predicate))
 
             # Inputs segmented before are passed forward without segmenting them again
-            already_segmented = self.fetch_segmented(resources, segmentor)
+            already_segmented = self.fetch_segmented(resources)
             if already_segmented:
                 logger.info(
                     f"{len(already_segmented)} of {len(resources)} "
@@ -199,13 +206,14 @@ class EntityExtractionTask(DecisionTask):
                     continue
 
                 logger.info(f"Extracting entities of {resource} (target {name})")
-                # The segmentor finds the input through the task's input container, and enriches it
-                result = segmentor.segment_and_validate(text, task=self)
+                result = segmentor.segment_and_validate(text, task=self, target=resource)
                 if not result["conforms"] or result["unlocated"]:
                     logger.warning(
                         f"Writing the segmentation of {resource} with problems: "
                         f"{len(result['violations'])} violations, {len(result['unlocated'])} problems in the answer")
                 self.insert_segmentation(result["turtle"])
+                annotations = self.annotate(resource, result["segments"])
+                logger.info(f"Linked {len(annotations)} entities to {resource}")
 
                 self.results_container_uris.append(
                     self.create_output_container(resource))

@@ -4,7 +4,6 @@ import uuid
 import textwrap
 import unicodedata
 from pathlib import Path
-from string import Template
 import requests
 from typing import Optional, Any, List, Dict
 from helpers import logger
@@ -23,21 +22,20 @@ class LLMSegmentorWithShape:
     """
     Segmentor using LLMAnalyzer, driven by a SHACL shape.
 
-    Every selected sh:NodeShape (and its sh:property shapes) is described to the LLM, together with the
-    existing entities related to the document (fetched from the SPARQL endpoint). The result enriches
-    those entities and adds the entities found in the text, linked through the shape's own properties.
+    Every selected sh:NodeShape (and its sh:property shapes) is described to the LLM, together with the existing
+    entities related to the target (see the target's related_entities). Every occurrence the LLM finds in the text is
+    a new entity, linked to the other new entities, and to the existing ones, through the shape's own properties. The
+    existing entities themselves are never changed.
 
-    segment_and_validate() returns, besides the validation, Turtle with only the new triples:
+    segment_and_validate() returns, besides the validation, the Turtle of the new entities:
         <new entity> a <sh:targetClass> ;
             mu:uuid "{uuid}" ;
-            <sh:path> "value found in the text" .
-        <existing entity> a <sh:targetClass of the shape it plays> ;
-            <relation sh:path> <new entity> .
-    A new entity's URI is uri_template filled with a new UUID and {class_name}, the lowercased local name of the
+            <sh:path> "value found in the text" ;
+            <relation sh:path> <other new entity or existing entity> .
+    A new entity's URI is URI_TEMPLATE filled with a new UUID and {class_name}, the lowercased local name of the
     shape's sh:targetClass: e.g. http://data.lblod.info/id/artikel/{uuid} for a besluit:Artikel.
-    and the same entities with their character offsets ('segments'):
-        {'key': 'N1' | 'E1', 'shape': <node shape URI>, 'uri': str, 'uuid': str | None, 'existing': bool,
-         'text': str | None, 'start': int | None, 'end': int | None, 'add_type': str | None,
+    and the same entities with their character offsets in the text ('segments'):
+        {'key': 'N1', 'shape': <node shape URI>, 'uri': str, 'uuid': str, 'text': str, 'start': int, 'end': int,
          'properties': [{'path': <sh:path URI>, 'text': str, 'start': int, 'end': int}
                         | {'path': <sh:path URI>, 'ref': <entity URI>}]}
     The Turtle is validated against the SHACL shape, and the LLM is asked again with the violations, up to
@@ -50,7 +48,7 @@ class LLMSegmentorWithShape:
     You receive a document and a description of one or more STRUCTURES, derived from
     a SHACL shape. Each structure has a key (e.g. "S1") and may have PROPERTIES with
     their own keys (e.g. "S1.P1"). You may also receive EXISTING ENTITIES (keys
-    "E1", "E2", ...) that are already known for this document.
+    "E1", "E2", ...): entities that are already known, which occurrences can refer to.
 
     TASK
     - Find every occurrence of each structure in the document.
@@ -73,22 +71,18 @@ class LLMSegmentorWithShape:
       with "ref", one ref per part.
 
     EXISTING ENTITIES
-    - When an occurrence is one of the existing entities, enrich that entity
-      instead of creating a new occurrence: refer to it with "entity" and give the
-      structure it plays in "shape" (one of its "can be enriched as" structures).
-      It needs no "text". Only give the properties it does not have yet.
-    - An existing entity marked "its text is the text below" holds the whole text.
-      When the text holds one occurrence of a structure that entity can be
-      enriched as, enrich the entity. When it holds several, they are new
-      occurrences, not that entity.
+    - Existing entities are never occurrences: do not return them, and do not
+      give them properties.
+    - An occurrence's relation can refer to an existing entity of the class the
+      relation needs: give its key ("E...") in "ref".
 
     RELATIONS
     - A property marked as a relation refers to another occurrence or existing
       entity: give its key in "ref" ("N..." id of an occurrence or "E..." key of
       an existing entity) instead of "text".
-    - The relation is given on the occurrence or entity that has the property.
-    - Always give every relation the document supports between the occurrences
-      and existing entities you return.
+    - The relation is given on the occurrence that has the property.
+    - Always give every relation the document supports from the occurrences you
+      return, to each other and to existing entities.
 
     COPYING TEXT
     - "text": the complete text of the occurrence or property value, copied
@@ -111,9 +105,7 @@ class LLMSegmentorWithShape:
     {"segments": [
       {"id": "N1", "shape": "<structure key>", "text": "...",
        "properties": [{"property": "<property key>", "text": "..."},
-                      {"property": "<relation property key>", "ref": "<N or E key>"}]},
-      {"entity": "<E key>", "shape": "<structure key>",
-       "properties": [...]}
+                      {"property": "<relation property key>", "ref": "<N or E key>"}]}
     ]}
     Every new occurrence has a unique "id" (N1, N2, ...). List new occurrences in
     document order. Return {"segments": []} if nothing is found.
@@ -186,6 +178,9 @@ class LLMSegmentorWithShape:
         # Shape, node shapes, examples, vocabularies and the vocabulary-specific settings come from the target
         self.usage_note_predicate = URIRef(target.usage_note_predicate) if target.usage_note_predicate else None
         self.text_predicate = URIRef(target.text_predicate)
+        # Existing entities related to the target, which new entities can refer to (see fetch_related_entities)
+        self.prefixes = target.prefixes
+        self.related_entities = target.related_entities
         # Tuned to the target's documents: how they are divided (see _merge_sub_parts)
         self.prompt_rules = target.prompt_rules
         self.numbered_parts = target.numbered_parts
@@ -271,12 +266,8 @@ class LLMSegmentorWithShape:
         """The class itself and all its (transitive) rdfs:subClassOf superclasses."""
         return {str(c) for c in self.ontology.transitive_objects(URIRef(class_uri), RDFS.subClassOf)}
 
-    def _is_input(self, types: set[str]) -> bool:
-        """A resource with these types is something to segment: it can be (enriched as) one of the selected shapes."""
-        return any(self._can_play(types, definition["target_class"]) for definition in self.definitions)
-
     def _can_play(self, types: set[str], target_class: Optional[str]) -> bool:
-        """An entity of the given types can be (enriched as) an instance of target_class."""
+        """An entity of the given types is an instance of target_class, through the class hierarchy."""
         return bool(target_class) and bool(types & self._superclasses(target_class))
 
     # Shape reading
@@ -302,16 +293,6 @@ class LLMSegmentorWithShape:
         alternatives = self.shape_graph.value(prop_node, SH["or"])
         return alternatives is not None and any(self.shape_graph.value(alternative, SH.datatype) is not None
                                                 for alternative in Collection(self.shape_graph, alternatives))
-
-    def _defined_paths(self, graph: Graph, subject, shape_uri: str) -> set[str]:
-        """
-        Paths for which the entity already has a value that counts: for a property that expects a literal, an IRI
-        (e.g. prov:value holding a link to the PDF publication) does not, so the text can still be added.
-        """
-        definition = next((d for d in self.definitions if d["uri"] == shape_uri), None)
-        literal_paths = {p["path"] for p in definition["properties"] if p["literal"]} if definition else set()
-        return {str(p) for p, o in graph.predicate_objects(subject)
-                if not (str(p) in literal_paths and not isinstance(o, Literal))}
 
     def _load_shape_definitions(self, node_shapes: Optional[List[str]]) -> List[Dict[str, Any]]:
         """Read the selected node shapes and their property shapes from the shape graph."""
@@ -484,51 +465,23 @@ class LLMSegmentorWithShape:
             lines.append("")
         return "\n".join(lines)
 
-    # Existing entities related to the document: the inputs of the task (see _is_input; target: text_predicate)
-    RELATED_ENTITIES_QUERY = """
-    PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
-    SELECT DISTINCT ?input ?type ?content WHERE {
-      GRAPH ?taskGraph { $task task:inputContainer ?container . }
-      GRAPH ?containerGraph { ?container task:hasResource ?input . }
-      OPTIONAL { GRAPH ?typeGraph { ?input a ?type . } }
-      OPTIONAL { GRAPH ?contentGraph { ?input $text_predicate ?content . } }
-    }
-    """
-
-    def fetch_related_entities(self, task_uri: str, text: Optional[str] = None) -> List[str]:
+    def fetch_related_entities(self, target_uri: str) -> List[str]:
         """
-        URIs of the inputs in the task's input container: resources whose types fit one of the selected shapes'
-        target classes, through the class hierarchy (see _is_input). With text, only the input whose text_predicate
-        value is that text counts (the first by URI when several are, e.g. duplicate
-        harvests of one document); when none is, e.g. for a translation, all inputs count.
+        URIs of the existing entities related to the target, which new entities can refer to: found by the target's
+        related_entities query (a SPARQL pattern binding ?entity from ?target); none without one.
         """
         from helpers import query
         from escape_helpers import sparql_escape_uri
 
-        q = Template(self.RELATED_ENTITIES_QUERY).substitute(
-            task=sparql_escape_uri(task_uri),
-            text_predicate=sparql_escape_uri(str(self.text_predicate)))
-        types: Dict[str, set[str]] = {}
-        contents: Dict[str, List[str]] = {}
-        for binding in query(q, sudo=True).get("results", {}).get("bindings", []):
-            resource = binding["input"]["value"]
-            types.setdefault(resource, set())
-            if "type" in binding:
-                types[resource].add(binding["type"]["value"])
-            if "content" in binding:
-                contents.setdefault(resource, []).append(binding["content"]["value"])
-        inputs = [resource for resource in types if self._is_input(types[resource])]
-        if not inputs:
-            logger.warning(f"No input for the shapes found in the input container of task {task_uri}")
+        if not self.related_entities:
             return []
-
-        if text is not None:
-            holding = sorted(i for i in inputs if any(self._same_text(c, text) for c in contents.get(i, [])))
-            if len(holding) > 1:
-                logger.warning(f"{len(holding)} inputs of task {task_uri} hold the text, using the first: {holding}")
-            if holding:
-                inputs = holding[:1]
-        return inputs
+        q = (f"{self.prefixes}\n"
+             f"SELECT DISTINCT ?entity WHERE {{\n"
+             f"  VALUES ?target {{ {sparql_escape_uri(target_uri)} }}\n"
+             f"  {self.related_entities}\n"
+             f"}}")
+        bindings = query(q, sudo=True).get("results", {}).get("bindings", [])
+        return sorted({b["entity"]["value"] for b in bindings if b.get("entity", {}).get("type") == "uri"})
 
     def fetch_entities(self, uris: List[str]) -> Graph:
         """Fetch all triples of the given entities, from any graph, from the SPARQL endpoint."""
@@ -554,24 +507,15 @@ class LLMSegmentorWithShape:
         return Literal(binding["value"], lang=binding.get("xml:lang"),
                        datatype=URIRef(binding["datatype"]) if binding.get("datatype") else None)
 
-    def _build_context(self, task: Any, text: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Existing entities related to the task (keys E1, E2, ...) with their types, known properties and the shapes
-        they can play.
-        """
-        task_uri = getattr(task, "task_uri", None)
-        uris = self.fetch_related_entities(task_uri, text) if task_uri else []
+    def _build_context(self, target_uri: Optional[str]) -> Dict[str, Any]:
+        """Existing entities related to the target (keys E1, E2, ...) with their types and known properties."""
+        uris = self.fetch_related_entities(target_uri) if target_uri else []
         graph = self.fetch_entities(uris)
 
         entities = {}
         for i, uri in enumerate(uris, start=1):
-            subject = URIRef(uri)
-            types = {str(t) for t in graph.objects(subject, RDF.type)}
-            entities[f"E{i}"] = {
-                "uri": uri,
-                "types": types,
-                "roles": [d["key"] for d in self.definitions if self._can_play(types, d["target_class"])],
-            }
+            types = {str(t) for t in graph.objects(URIRef(uri), RDF.type)}
+            entities[f"E{i}"] = {"uri": uri, "types": types}
             if not types:
                 logger.warning(f"Related entity {uri} has no rdf:type in the triplestore")
         return {"graph": graph, "entities": entities}
@@ -587,33 +531,17 @@ class LLMSegmentorWithShape:
             logger.warning(f"Could not detect the language of the text: {e}")
             return None
 
-    def _same_text(self, value: str, text: str) -> bool:
-        """Compared on the first 200 characters, ignoring whitespace differences."""
-        start = " ".join(text.split())[:200]
-        return bool(start) and " ".join(str(value).split())[:200] == start
-
-    def _holds_text(self, graph: Graph, subject, text: str) -> bool:
-        """The entity has a literal value holding the input text, e.g. an expression's content."""
-        return any(isinstance(o, Literal) and self._same_text(o, text) for o in graph.objects(subject, None))
-
-    def _render_context(self, context: Dict[str, Any], text: str) -> str:
+    def _render_context(self, context: Dict[str, Any]) -> str:
         if not context["entities"]:
             return ""
-        document_start = " ".join(text.split())[:200]
         lines = ["", "    EXISTING ENTITIES"]
         for key, entity in context["entities"].items():
             subject = URIRef(entity["uri"])
-            lines.append(f"[{key}] <{entity['uri']}>"
-                         + (" (its text is the text below)" if self._holds_text(context["graph"], subject, text) else ""))
+            lines.append(f"[{key}] <{entity['uri']}>")
             lines.append(f"  Types: {', '.join(f'<{t}>' for t in sorted(entity['types'])) or 'unknown'}")
-            if entity["roles"]:
-                names = {d["key"]: d["name"] for d in self.definitions}
-                lines.append(f"  Can be enriched as: {', '.join(f'{role} ({names[role]})' for role in entity['roles'])}")
             known = []
             for p in sorted({p for p in context["graph"].predicates(subject) if p not in (RDF.type, self.MU_UUID)}, key=str):
-                values = [f"<{o}>" if isinstance(o, URIRef) else
-                          "the text below" if document_start and " ".join(str(o).split())[:200] == document_start else
-                          f'"{" ".join(str(o).split())[:60]}"'
+                values = [f"<{o}>" if isinstance(o, URIRef) else f'"{" ".join(str(o).split())[:60]}"'
                           for o in list(context["graph"].objects(subject, p))[:3]]
                 known.append(f"    <{p}>: {', '.join(values)}")
             if known:
@@ -668,7 +596,7 @@ class LLMSegmentorWithShape:
             found = self._locate(text, found_text, lo, hi)
         return found
 
-    def segment_and_validate(self, text: str, task: Any = None) -> Dict[str, Any]:
+    def segment_and_validate(self, text: str, task: Any = None, target: Optional[str] = None) -> Dict[str, Any]:
         """
         Segment, serialize to Turtle and validate against the SHACL shape. While the result does not
         conform or has texts that cannot be found, ask the LLM again with its previous answer and
@@ -676,12 +604,12 @@ class LLMSegmentorWithShape:
             {'turtle': str, 'segments': [...], 'conforms': bool, 'violations': [...],
              'unlocated': [...], 'attempts': int,
              'usage': {'calls': int, 'input_tokens': int, 'output_tokens': int}}  # summed over all attempts
-        task: the task being processed (with task_uri). The inputs in its input container (see
-        fetch_related_entities) are enriched and linked to.
+        task: the task being processed (with task_uri), on which the LLM calls are recorded. target: the URI of the
+        resource the text is of, whose related entities (see fetch_related_entities) new entities can refer to.
         """
-        context = self._build_context(task, text)
+        context = self._build_context(target)
         context["language"] = self._detect_language(text)
-        system_prompt = self.system_prompt + self._render_context(context, text)
+        system_prompt = self.system_prompt + self._render_context(context)
         best = None
         feedback = None
         usage = {"calls": 0, "input_tokens": 0, "output_tokens": 0}
@@ -730,10 +658,9 @@ class LLMSegmentorWithShape:
 
     def validate(self, turtle: str, context_graph: Optional[Graph] = None, keys: Optional[Dict[str, str]] = None) -> tuple[bool, List[Dict[str, Any]]]:
         """
-        Parse the Turtle (raises when invalid) and validate it, together with the existing entities' triples,
-        against the SHACL shape. Cardinalities are ignored, and only violations on what the Turtle adds count: on a
-        value the Turtle adds, on a property the Turtle sets for that entity, or on an entity in the Turtle as a
-        whole. Problems in the existing data (e.g. other values of an existing entity) cannot be fixed by the LLM.
+        Parse the Turtle (raises when invalid) and validate it, together with the existing entities' triples (e.g.
+        the type a relation to one needs), against the SHACL shape. Cardinalities are ignored, and only violations on
+        what the Turtle adds count: problems in the existing data cannot be fixed by the LLM.
         """
         output_graph = Graph().parse(data=turtle, format="turtle")
         data_graph = output_graph + context_graph if context_graph is not None else output_graph
@@ -810,20 +737,16 @@ class LLMSegmentorWithShape:
         return self.URI_TEMPLATE.format(class_name=class_name, uuid=entity_uuid), entity_uuid
 
     def to_turtle(self, segments: List[Dict[str, Any]]) -> str:
-        """Serialize the new triples: new entities, added types and properties of existing entities, and relations."""
+        """Serialize the new entities: their type, mu:uuid, property values and relations."""
         blocks = []
         for segment in segments:
-            if segment["existing"]:
-                statements = [f"a {URIRef(segment['add_type']).n3()}"] if segment["add_type"] else []
-            else:
-                target_class = self.target_classes.get(segment["shape"])
-                statements = [f"a {URIRef(target_class).n3()}"] if target_class else []
-                statements.append(f"{self.MU_UUID.n3()} {Literal(segment['uuid']).n3()}")
+            target_class = self.target_classes.get(segment["shape"])
+            statements = [f"a {URIRef(target_class).n3()}"] if target_class else []
+            statements.append(f"{self.MU_UUID.n3()} {Literal(segment['uuid']).n3()}")
             for prop in segment["properties"]:
                 value = URIRef(prop["ref"]) if "ref" in prop else Literal(prop["text"], lang=prop.get("lang"))
                 statements.append(f"{URIRef(prop['path']).n3()} {value.n3()}")
-            if statements:
-                blocks.append(f"{URIRef(segment['uri']).n3()} " + " ;\n    ".join(statements) + " .")
+            blocks.append(f"{URIRef(segment['uri']).n3()} " + " ;\n    ".join(statements) + " .")
         return "\n\n".join(blocks) + ("\n" if blocks else "")
 
     def _ask(self, text: str, task: Any = None, feedback: Optional[str] = None, system_prompt: Optional[str] = None) -> Dict[str, Any]:
@@ -849,44 +772,6 @@ class LLMSegmentorWithShape:
             ) from e
 
         return result
-
-    def _merge_into_text_holder(self, segments: List[Dict[str, Any]], text: str,
-                                context: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """
-        An existing entity holding the whole text is the one occurrence of a structure it can be enriched as
-        (e.g. an uittreksel's expression is its one decision). When there is exactly one new occurrence of such a
-        structure, that occurrence is the entity: it becomes the entity, or, when the answer also enriches the entity
-        as that structure, its properties are added to that. Several new occurrences (e.g. the decisions in notulen)
-        stay new. Runs after _merge_sub_parts, so that an occurrence the LLM split in parts counts once.
-        """
-        holder = next((key for key, entity in context["entities"].items()
-                       if self._holds_text(context["graph"], URIRef(entity["uri"]), text)), None)
-        if holder is None:
-            return segments
-        entity = context["entities"][holder]
-        enriched = [s for s in segments if s["existing"] and s["key"] == holder]
-        for role in entity["roles"]:
-            shape = self.key_lookup[role]["shape"]
-            new = [s for s in segments if not s["existing"] and s["shape"] == shape]
-            if len(new) != 1:
-                continue
-            occurrence = new[0]
-            target = next((s for s in enriched if s["shape"] == shape), None)
-            if target is None and enriched:
-                continue  # the answer enriches the entity as another structure
-            if target is None:
-                target_class = self.target_classes.get(shape)
-                target = {"key": holder, "shape": shape, "uri": entity["uri"], "uuid": None, "existing": True,
-                          "text": None, "start": None, "end": None,
-                          "add_type": target_class if target_class and target_class not in entity["types"] else None,
-                          "properties": []}
-                segments.append(target)
-            # As for an enriched entity, only the properties it does not have yet
-            existing_paths = self._defined_paths(context["graph"], URIRef(entity["uri"]), shape)
-            target["properties"] += [p for p in occurrence["properties"] if p["path"] not in existing_paths]
-            logger.info(f"Merged the only new {role} occurrence {occurrence['key']} into {holder}, which holds the text")
-            return self._redirect(segments, {occurrence["uri"]: target})
-        return segments
 
     # A heading line: at most this many words, ending with a colon, e.g. "BESLIST:" between a motivation and the
     # decision itself; a longer line ending with a colon introduces what follows, e.g. "... worden door:". The
@@ -937,7 +822,7 @@ class LLMSegmentorWithShape:
         if not self.numbered_parts:
             return segments
         merged: Dict[str, Dict[str, Any]] = {}  # sub-part URI -> parent
-        new = sorted((s for s in segments if not s["existing"]), key=lambda s: s["start"])
+        new = sorted(segments, key=lambda s: s["start"])
         parents: Dict[str, Dict[str, Any]] = {}  # shape -> current parent
         for segment in new:
             label = self._numbered_label(segment["text"])
@@ -992,7 +877,7 @@ class LLMSegmentorWithShape:
         definitions = {d["uri"]: d for d in self.definitions}
         problems = []
         for segment in segments:
-            if segment["existing"] or segment["uri"] in referenced:
+            if segment["uri"] in referenced:
                 continue
             classes = self._superclasses(self.target_classes.get(segment["shape"]) or "")
             candidates = [f"{owner['key']} via {prop['key']} ({prop['name']})"
@@ -1006,8 +891,9 @@ class LLMSegmentorWithShape:
     def _segments_from_answer(self, text: str, result: Dict[str, Any], problems: Optional[List[str]] = None,
                               context: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """
-        Build entities from the LLM's answer: locate the texts of new occurrences in the source text, resolve
-        existing entities and relation refs. Anything that cannot be resolved is added to problems.
+        Build the new entities from the LLM's answer: locate the texts of the occurrences in the source text, and
+        resolve relation refs to occurrences and existing entities. Anything that cannot be resolved is added to
+        problems.
         """
         problems = problems if problems is not None else []
         context = context or {"graph": Graph(), "entities": {}}
@@ -1031,24 +917,8 @@ class LLMSegmentorWithShape:
 
             entity_key = str(item.get("entity") or "").strip()
             if entity_key:
-                entity = entities.get(entity_key)
-                if entity is None:
-                    problems.append(f"unknown existing entity {entity_key!r}")
-                    continue
-                if shape_key not in entity["roles"]:
-                    problems.append(f"{entity_key} cannot be enriched as {shape_key}; "
-                                    f"it can be enriched as: {', '.join(entity['roles']) or 'nothing'}")
-                    continue
-                segment = by_key.get(entity_key)
-                if segment is None:
-                    target_class = self.target_classes.get(target["shape"])
-                    segment = {"key": entity_key, "shape": target["shape"], "uri": entity["uri"], "uuid": None,
-                               "existing": True, "text": None, "start": None, "end": None,
-                               "add_type": target_class if target_class and target_class not in entity["types"] else None,
-                               "properties": []}
-                    by_key[entity_key] = segment
-                    segments.append(segment)
-                resolved_items.append((item, segment, shape_key))
+                problems.append(f"{entity_key} is an existing entity: do not return it or give it properties; "
+                                f"refer to it from an occurrence with \"ref\" instead")
                 continue
 
             found = self._locate_from(source, item.get("text"), cursors.get(shape_key, 0), 0, len(source))
@@ -1064,18 +934,15 @@ class LLMSegmentorWithShape:
                 problems.append(f"id {occurrence_key!r} is used more than once")
                 occurrence_key = f"{occurrence_key}?{len(segments) + 1}"
             segment = {"key": occurrence_key, "shape": target["shape"], "uri": uri, "uuid": entity_uuid,
-                       "existing": False, "text": source[start:end], "start": start, "end": end,
-                       "add_type": None, "properties": []}
+                       "text": source[start:end], "start": start, "end": end, "properties": []}
             by_key[occurrence_key] = segment
             segments.append(segment)
             resolved_items.append((item, segment, shape_key))
 
         # Second pass: property values and relations
         for item, segment, shape_key in resolved_items:
-            existing_paths = (self._defined_paths(context["graph"], URIRef(segment["uri"]), segment["shape"])
-                              if segment["existing"] else set())
-            # Values of existing entities can be anywhere in the document, new ones only inside their occurrence
-            lo, hi = (0, len(source)) if segment["existing"] else (segment["start"], segment["end"])
+            # Values are inside their occurrence
+            lo, hi = segment["start"], segment["end"]
             property_cursors: Dict[str, int] = {}
             properties = item.get("properties") or []
             for prop in properties if isinstance(properties, list) else []:
@@ -1087,12 +954,14 @@ class LLMSegmentorWithShape:
                     logger.warning(f"Skipping property with unknown key {prop_key!r} for {segment['key']}")
                     problems.append(f"{segment['key']}: unknown property key {prop_key!r} for {shape_key}")
                     continue
-                if prop_target["path"] in existing_paths:
-                    logger.info(f"Skipping {prop_key} of {segment['key']}: the existing entity already has a value")
-                    continue
 
                 if self.properties_by_key[prop_key]["class"]:
                     ref = str(prop.get("ref") or "").strip()
+                    relation_class = self.properties_by_key[prop_key]["class"]
+                    if ref in entities and not self._can_play(entities[ref]["types"], relation_class):
+                        problems.append(f"{segment['key']}, property {prop_key}: existing entity {ref} is not an "
+                                        f"instance of <{relation_class}>")
+                        continue
                     ref_uri = by_key[ref]["uri"] if ref in by_key else entities[ref]["uri"] if ref in entities else None
                     if ref_uri is None:
                         problems.append(f"{segment['key']}, property {prop_key}: relation needs a \"ref\" to an "
@@ -1103,8 +972,7 @@ class LLMSegmentorWithShape:
 
                 prop_found = self._locate_from(source, prop.get("text"), property_cursors.get(prop_key, lo), lo, hi)
                 if prop_found is None:
-                    where = "in the document" if segment["existing"] else \
-                        f"inside {segment['key']} starting with {source[lo:lo + 60]!r}"
+                    where = f"inside {segment['key']} starting with {source[lo:lo + 60]!r}"
                     logger.warning(f"Could not locate {prop_key} of {segment['key']}: {str(prop.get('text'))[:80]!r}")
                     problems.append(f"{segment['key']}, property {prop_key}: text not found verbatim {where}: {prop.get('text')!r}")
                     continue
@@ -1121,10 +989,9 @@ class LLMSegmentorWithShape:
             segment["properties"].sort(key=self._property_order)
 
         segments = self._merge_sub_parts(segments, source)
-        segments = self._merge_into_text_holder(segments, text, context)
         problems += self._unlinked(segments)
 
-        # Existing entities first, then new occurrences in document order
-        segments.sort(key=lambda s: (not s["existing"], s["start"] or 0, -(s["end"] or 0)))
+        # In document order
+        segments.sort(key=lambda s: (s["start"], -s["end"]))
         logger.info(f"Located {len(segments)} shape segments")
         return segments

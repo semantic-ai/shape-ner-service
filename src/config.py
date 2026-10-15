@@ -60,11 +60,17 @@ class TargetConfig(BaseModel):
     )
     prefixes: str = Field(
         default="",
-        description="PREFIX declarations used by target_filter"
+        description="PREFIX declarations used by target_filter and related_entities"
     )
     target_filter: str = Field(
         description="SPARQL graph pattern on ?target, a resource in the task's input container: the target applies "
                     "to the resources it matches, e.g. '?target a eli:Expression .'"
+    )
+    related_entities: str | None = Field(
+        default=None,
+        description="SPARQL graph pattern binding ?entity from ?target: existing entities related to the target, which "
+                    "the entities found in its text can refer to (e.g. the session of a decision); none for none. "
+                    "They are never changed"
     )
     text_predicate: str = Field(
         description="Property of the input resource holding the text to segment"

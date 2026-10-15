@@ -53,7 +53,7 @@ def run(request, report_lines: list[str]) -> SimpleNamespace:
 def new_by_shape(run) -> dict[str, list[dict]]:
     """New entities per node shape, in document order."""
     shapes: dict[str, list[dict]] = {}
-    for segment in sorted((s for s in run.result["segments"] if not s["existing"]), key=lambda s: s["start"]):
+    for segment in sorted(run.result["segments"], key=lambda s: s["start"]):
         shapes.setdefault(segment["shape"], []).append(segment)
     return shapes
 
@@ -84,15 +84,13 @@ def test_conforms_within_the_attempts(run):
 def test_texts_point_to_the_source_text(run):
     text = run.case["text"]
     for segment in run.result["segments"]:
-        if not segment["existing"]:
-            assert text[segment["start"]:segment["end"]] == segment["text"]
+        assert text[segment["start"]:segment["end"]] == segment["text"]
         for prop in segment["properties"]:
             if "ref" in prop:
                 continue
             assert text[prop["start"]:prop["end"]] == prop["text"]
-            if not segment["existing"]:
-                assert segment["start"] <= prop["start"] <= prop["end"] <= segment["end"], \
-                    f"{prop['path']} of {segment['key']} lies outside it"
+            assert segment["start"] <= prop["start"] <= prop["end"] <= segment["end"], \
+                f"{prop['path']} of {segment['key']} lies outside it"
 
 
 def test_occurrences_of_a_structure_do_not_overlap(run):
@@ -128,6 +126,13 @@ def test_values_do_not_start_or_end_with_a_heading(run):
             if len(lines) > 1:
                 assert not run.segmentor._is_heading_line(lines[0]), f"{prop['path']} of {segment['key']} starts with {lines[0]!r}"
                 assert not run.segmentor._is_heading_line(lines[-1]), f"{prop['path']} of {segment['key']} ends with {lines[-1]!r}"
+
+
+def test_the_input_is_not_an_entity(run):
+    # Every entity found is new: the input, and its related entities, are never changed
+    unchanged = {run.case["input"], *run.case["related"]}
+    changed = sorted({str(s) for s in run.graph.subjects()} & unchanged)
+    assert not changed, f"triples added to {changed}"
 
 
 def test_new_entities_have_a_minted_uri_and_uuid(run):

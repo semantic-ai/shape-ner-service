@@ -9,7 +9,7 @@ A folder is a case when it holds an `input.ttl`. You write these files by hand:
 | File           | Required | Contents                                                                            |
 |----------------|----------|-------------------------------------------------------------------------------------|
 | `input.ttl`    | yes      | the resource to segment, with its text                                              |
-| `context.ttl`  | no       | what else the triplestore holds about the input, e.g. its types from other graphs   |
+| `context.ttl`  | no       | existing entities related to the input, which the new entities can refer to         |
 | `patterns.ttl` | yes      | what the output must contain                                                        |
 | `README.md`    | no       | title, description and source of the case (only for people, the tests don't read it) |
 
@@ -27,8 +27,8 @@ Name it `SEGTC<number>-<short-name>`, with the next free number, e.g. `tests/cas
 case's target (see `test:target` in step 4; for the `uittreksel` target in `config.json`, `epvoc:expressionContent`).
 Zero or several such resources make the case fail to load.
 
-The resource also needs an `rdf:type` that can play one of the selected node shapes, e.g. `eli:Expression`. Without
-one, the segmentor doesn't take it as the input.
+The resource also needs what the target's `target_filter` checks, e.g. `a eli:Expression` for `uittreksel`. The
+resource itself is never changed: every entity found in its text is new.
 
 ```turtle
 @prefix eli: <http://data.europa.eu/eli/ontology#> .
@@ -52,9 +52,9 @@ CONSTRUCT { ?s ?p ?o } WHERE {
 
 ### 3. Write `context.ttl` (optional)
 
-Add what the triplestore holds about the input besides `input.ttl`, when it matters to the segmentation: e.g. its
-types from other graphs (which decide the structures it can be enriched as), or values it already has (which the
-segmentor does not add again).
+Add the existing entities related to the input: what the target's `related_entities` query finds (e.g. the session
+of a decision), with their triples. Every subject in `context.ttl` is such an entity. The new entities can refer to
+them through a relation, when they are an instance of the class the relation needs; they are never changed.
 
 ### 4. Write `patterns.ttl`
 
@@ -72,7 +72,7 @@ pattern the output must match:
     test:count [ test:class besluit:Besluit ; test:number 1 ] ,
                [ test:class besluit:Artikel ; test:number 6 ] .
 
-<http://data.lblod.info/id/expressions/...> a besluit:Besluit ;
+[] a besluit:Besluit ;
     eli:has_part [ a besluit:Artikel ; eli:number "1" ;
                    prov:value "Invoeren van éénrichtingsverkeer"^^test:startsWith ] .
 ```

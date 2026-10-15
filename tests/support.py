@@ -1,20 +1,20 @@
 """
-Shared helpers for the segmentation tests: a stand-in task, a temporary task in the triplestore, the LLM usage report,
-and test cases in case folders (tests/cases/<id>/, after the RML test cases), with their files:
+Shared helpers for the segmentation tests: a stand-in task, the LLM usage report, and test cases in case folders (tests/cases/<id>/, after the RML test cases), with their files:
 
     README.md       title and description
     input.ttl       input: the resource in the task's input container, with the text to segment (the target's
                     text_predicate)
-    context.ttl     input (optional): what the triplestore holds besides it that matters to the segmentation
+    context.ttl     input (optional): the existing entities related to the input, which new entities can refer to
+                    (what the target's related_entities query finds), with their triples
     prompts/        snapshot of the prompts per attempt (attempt-1-system.txt, attempt-1-user.txt, ...)
     answers.json    the recorded LLM answers, one per attempt
     output.ttl      expected output: new entities as blank nodes, without their mu:uuid
     patterns.ttl    patterns the output must match (see below)
     out/            written by every run, not in git: segments.ttl, the segmentation result as the service writes it
 
-A normal run replays answers.json without the LLM or the triplestore: the segmentor's lookups read input.ttl and
-context.ttl. It fails when the prompts differ from the snapshot, the output is not isomorphic to output.ttl, or a
-pattern does not match. With SEGMENTATION_RECORD=1 the LLM is called and prompts/, answers.json and output.ttl are
+A normal run replays answers.json without the LLM or the triplestore: the segmentor's lookups read context.ttl. It
+fails when the prompts differ from the snapshot, the output is not isomorphic to output.ttl, or a pattern does not
+match. With SEGMENTATION_RECORD=1 the LLM is called and prompts/, answers.json and output.ttl are
 written (review them with git diff); the patterns are still checked. With SEGMENTATION_RECORD=output only output.ttl
 is written from a replay: for code changes that change the output but not the prompts.
 
@@ -26,10 +26,11 @@ patterns.ttl has one test:Case node, and everything else in it is a pattern:
         test:target "uittreksel" ;                        # target of the app config (optional, default the first)
         test:count [ test:class besluit:Artikel ; test:number 6 ] .   # segmented entities per class
 
-    <...expression> a besluit:Besluit .                   # triples with URIs must be in the result as they are
     [] a besluit:Artikel ;                                # a blank node is any entity: its new URI is not known
         eli:number "1" ;
         prov:value "Invoeren van éénrichtingsverkeer"^^test:startsWith .
+
+A URI in a pattern (e.g. of a related entity in context.ttl) must be in the result as it is.
 
 Literals are compared on their text, ignoring whitespace differences and language tags; ^^test:startsWith and
 ^^test:contains compare part of it. Blank nodes linked to each other are matched together.
@@ -37,8 +38,6 @@ Literals are compared on their text, ignoring whitespace differences and languag
 import copy
 import difflib
 import json
-import uuid
-from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -76,35 +75,6 @@ def create_segmentor(target: str | None = None):
     if llm_config.provider != "ollama" and not llm_config.api_key:
         pytest.skip(f"No API key configured for segmentation provider {llm_config.provider}")
     return create_task_segmentor(target or default_target())
-
-
-@contextmanager
-def temporary_task(expression: str):
-    """A task with one input container holding the expression, like a shape-ner task; removed afterwards."""
-    from helpers import update
-    from escape_helpers import sparql_escape_uri
-    from decide_ai_service_base.sparql_config import GRAPHS
-
-    task_uri = f"http://redpencil.data.gift/id/task/test-{uuid.uuid4()}"
-    container = f"http://data.lblod.info/id/data-container/test-{uuid.uuid4()}"
-    data = f"""
-      GRAPH {sparql_escape_uri(GRAPHS["jobs"])} {{
-        {sparql_escape_uri(task_uri)} a <http://redpencil.data.gift/vocabularies/tasks/Task> ;
-          <http://redpencil.data.gift/vocabularies/tasks/inputContainer> {sparql_escape_uri(container)} .
-      }}
-      GRAPH {sparql_escape_uri(GRAPHS["data_containers"])} {{
-        {sparql_escape_uri(container)} a <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#DataContainer> ;
-          <http://redpencil.data.gift/vocabularies/tasks/hasResource> {sparql_escape_uri(expression)} .
-      }}
-    """
-    try:
-        update(f"INSERT DATA {{ {data} }}", sudo=True)
-    except Exception as e:
-        pytest.skip(f"Triplestore not reachable: {e}")
-    try:
-        yield TaskStub(task_uri)
-    finally:
-        update(f"DELETE DATA {{ {data} }}", sudo=True)
 
 
 def usage_report(model_name: str, usage: dict, label: str = "") -> list[str]:
@@ -172,7 +142,8 @@ def load_case(folder: Path) -> dict:
         "target": target,
         "input": inputs[0],
         "text": str(input_graph.value(URIRef(inputs[0]), text_predicate)),
-        "store": input_graph + context,
+        "related": sorted({str(s) for s in context.subjects() if isinstance(s, URIRef)}),
+        "store": context,
         "counts": {str(patterns.value(c, TEST["class"])): int(patterns.value(c, TEST["number"])) for c in counts},
         "expected": expected,
         "answers": json.loads(answers.read_text(encoding="utf-8")) if answers.exists() else None,
@@ -180,13 +151,12 @@ def load_case(folder: Path) -> dict:
 
 
 def use_case_store(segmentor, case: dict) -> None:
-    """Let the segmentor's triplestore lookups read the case's input.ttl and context.ttl instead."""
+    """Let the segmentor's triplestore lookups read the case's context.ttl instead."""
     store = case["store"]
 
-    def fetch_related_entities(task_uri, text=None):
-        # As the live lookup: the input counts when its types (from input.ttl and context.ttl) fit the shapes
-        types = {str(t) for t in store.objects(URIRef(case["input"]), RDF.type)}
-        return [case["input"]] if segmentor._is_input(types) else []
+    def fetch_related_entities(target_uri):
+        # As the target's related_entities query: the entities in context.ttl
+        return case["related"] if target_uri == case["input"] else []
 
     def fetch_entities(uris):
         graph = Graph()
@@ -239,7 +209,7 @@ def run_case(case: dict, record: bool) -> tuple[dict, list[dict], object, TaskSt
     calls = capture_llm_calls(segmentor, None if record else case["answers"])
     task = TaskStub(f"http://example.org/task/{case['name']}")
     try:
-        result = segmentor.segment_and_validate(case["text"], task=task)
+        result = segmentor.segment_and_validate(case["text"], task=task, target=case["input"])
     except RuntimeError as e:
         # The segmentor wraps errors of the LLM call, the replay's included
         if isinstance(e.__cause__, RecordingExhausted):
@@ -251,7 +221,7 @@ def run_case(case: dict, record: bool) -> tuple[dict, list[dict], object, TaskSt
 def normalized_output(result: dict) -> Graph:
     """The output with new entities as blank nodes and without their mu:uuid, which differ per run."""
     graph = Graph().parse(data=result["turtle"], format="turtle")
-    new = sorted(URIRef(s["uri"]) for s in result["segments"] if not s["existing"])
+    new = sorted(URIRef(s["uri"]) for s in result["segments"])
     bnodes = {uri: BNode(f"new{i + 1}") for i, uri in enumerate(new)}
     output = Graph()
     for prefix, namespace in PREFIXES.items():
@@ -323,7 +293,7 @@ def check_patterns(case: dict, result: dict, segmentor) -> list[str]:
     """Everything in patterns.ttl that the segmentation result does not satisfy, one line (or block) per failure."""
     failures = []
 
-    # Segmented entities: new ones and enriched existing ones
+    # Segmented entities
     actual_counts: dict[str, int] = {}
     for segment in result["segments"]:
         target_class = segmentor.target_classes.get(segment["shape"])

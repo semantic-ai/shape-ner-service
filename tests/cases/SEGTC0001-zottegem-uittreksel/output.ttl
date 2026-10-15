@@ -2,7 +2,7 @@
 @prefix eli: <http://data.europa.eu/eli/ontology#> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 
-<http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> a besluit:Besluit ;
+[] a besluit:Besluit ;
     eli:has_part [ a besluit:Artikel ;
             eli:number "3" ;
             prov:value """Invoeren van geschrankt parkeren in de Parkstraat.
@@ -16,11 +16,6 @@ toegestaan is.
 toegestaan is.
 
  Het aanbrengen van markeringen die de parkeerstroken aanduiden.""" ],
-        [ a besluit:Artikel ;
-            eli:number "6" ;
-            prov:value """Dit aanvullend reglement zal ter kennisgeving worden toegestuurd aan de Vlaamse Overheid, 
-Afdeling Beleid Mobiliteit en Verkeersveiligheid, Departement Mobiliteit en Openbare Werken, 
-Koning Albert II-laan 20 bus 2, 1000 Brussel.""" ],
         [ a besluit:Artikel ;
             eli:number "1" ;
             prov:value """Invoeren van éénrichtingsverkeer in de Grotstraat, uitgezonderd fietsers en bromfietsers klasse A.
@@ -52,6 +47,24 @@ het Xpunt met Grotstraat) en met leesrichting Grotstraat.
  Het plaatsen van verkeersbord C31a + onderbord M3 in de Gentse Steenweg (ter hoogte van het 
 Xpunt met Leenstraat) en met leesrichting Gentse Steenweg.""" ],
         [ a besluit:Artikel ;
+            eli:number "4" ;
+            prov:value """Plaatsen van een verkeerseiland in de Parkstraat om te vermijden dat het éénrichtingsverkeer 
+wordt genegeerd.
+
+Artikel 4.1. Deze maatregel zal aangeduid worden door:
+
+ Het aanbrengen van een verdrijvingsvlak met plooibakens
+
+ Het aanbrengen van een fietssuggestiestrook naast het verdrijvingsvlak voor fietsers en 
+bromfietsers klasse A.""" ],
+        [ a besluit:Artikel ;
+            eli:number "5" ;
+            prov:value """Invoeren van parkeerverbod in de Leenstraat.
+
+Artikel 5.1. Deze maatregel zal aangeduid worden door:
+
+ Het plaatsen van de verkeersborden E1 tussen de Gentse Steenweg en de bushalte (onpare kant).""" ],
+        [ a besluit:Artikel ;
             eli:number "2" ;
             prov:value """Invoeren van éénrichtingsverkeer in de Parkstraat, uitgezonderd fietsers en bromfietsers klasse A.
 
@@ -72,23 +85,10 @@ Park Van Breivelde) en met leesrichting Gentse Steenweg.
  Het plaatsen van verkeersbord C31b + M3 aan de uitrit van parking Park Van Breivelde, ter hoogte 
 van het Xpunt met Parkstraat.""" ],
         [ a besluit:Artikel ;
-            eli:number "5" ;
-            prov:value """Invoeren van parkeerverbod in de Leenstraat.
-
-Artikel 5.1. Deze maatregel zal aangeduid worden door:
-
- Het plaatsen van de verkeersborden E1 tussen de Gentse Steenweg en de bushalte (onpare kant).""" ],
-        [ a besluit:Artikel ;
-            eli:number "4" ;
-            prov:value """Plaatsen van een verkeerseiland in de Parkstraat om te vermijden dat het éénrichtingsverkeer 
-wordt genegeerd.
-
-Artikel 4.1. Deze maatregel zal aangeduid worden door:
-
- Het aanbrengen van een verdrijvingsvlak met plooibakens
-
- Het aanbrengen van een fietssuggestiestrook naast het verdrijvingsvlak voor fietsers en 
-bromfietsers klasse A.""" ] ;
+            eli:number "6" ;
+            prov:value """Dit aanvullend reglement zal ter kennisgeving worden toegestuurd aan de Vlaamse Overheid, 
+Afdeling Beleid Mobiliteit en Verkeersveiligheid, Departement Mobiliteit en Openbare Werken, 
+Koning Albert II-laan 20 bus 2, 1000 Brussel.""" ] ;
     eli:title """17. Verkeer. Aanvullend politiereglement op het verkeer. De invoering van een nieuwe 
 verkeerscirculatie in de Parkstraat en Grotstraat. Aanpassing.""" ;
     besluit:motivering """Bevoegd

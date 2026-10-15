@@ -11,11 +11,11 @@ To debug, start it under debugpy and attach with "Attach to pytest (Docker)" in 
 """
 import pytest
 from bs4 import BeautifulSoup
-from rdflib import Graph, Literal, Namespace, URIRef
+from rdflib import Graph, Namespace, URIRef
 from rdflib.namespace import PROV, RDF, SH
 
 from src.config import get_config
-from tests.support import case_folders, default_target, load_case, temporary_task
+from tests.support import case_folders, default_target
 
 CASES = case_folders()
 BESLUIT = Namespace("http://data.vlaanderen.be/ns/besluit#")
@@ -85,8 +85,8 @@ def offline_segmentor():
 
 def test_a_decision_split_in_two_is_one_decision(offline_segmentor):
     # The LLM may split an uittreksel's decision at "BESLIST:" into its motivation and its content, with the relations
-    # to the articles on the second part. That part continues the first, and the one decision is the expression that
-    # holds the text, with the content and the relations of both parts
+    # to the articles on the second part. That part continues the first: there is one decision, a new entity, with the
+    # content and the relations of both parts
     s = offline_segmentor
     besluit, artikel = (s.definitions_by_class[str(BESLUIT[name])] for name in ("Besluit", "Artikel"))
     key = {(definition["key"], prop["path"]): prop["key"]
@@ -96,14 +96,6 @@ def test_a_decision_split_in_two_is_one_decision(offline_segmentor):
     number, article_content = key[artikel["key"], str(ELI.number)], key[artikel["key"], str(PROV.value)]
     text = ("Uittreksel\n\n1. Invoeren van een parkeerverbod.\n\nVerantwoording\nDe straat is te smal.\n\nBESLIST:\n"
             "Artikel 1. Invoeren van een parkeerverbod in de Kerkstraat.\n\nArtikel 2. Dit besluit treedt in werking.")
-    expression = URIRef("http://example.org/expression")
-    graph = Graph()
-    graph.add((expression, RDF.type, ELI.Expression))
-    graph.add((expression, s.text_predicate, Literal(text)))
-    types = {str(ELI.Expression)}
-    context = {"graph": graph, "language": "nl", "entities": {"E1": {
-        "uri": str(expression), "types": types,
-        "roles": [d["key"] for d in s.definitions if s._can_play(types, d["target_class"])]}}}
     answer = {"segments": [
         {"id": "N1", "shape": besluit["key"],
          "text": "1. Invoeren van een parkeerverbod.\n\nVerantwoording\nDe straat is te smal.\n\nBESLIST:",
@@ -122,11 +114,11 @@ def test_a_decision_split_in_two_is_one_decision(offline_segmentor):
     ]}
 
     problems = []
-    segments = s._segments_from_answer(text, answer, problems, context)
+    segments = s._segments_from_answer(text, answer, problems, {"graph": Graph(), "entities": {}, "language": "nl"})
 
     assert problems == []
     decisions = [segment for segment in segments if segment["shape"] == besluit["uri"]]
-    assert [(d["uri"], d["existing"]) for d in decisions] == [(str(expression), True)]
+    assert len(decisions) == 1 and decisions[0]["uri"].startswith("http://data.lblod.info/id/besluit/")
     values = {prop["path"]: prop["text"] for prop in decisions[0]["properties"] if "ref" not in prop}
     assert values[str(PROV.value)].startswith("Artikel 1.")
     articles = [segment["uri"] for segment in segments if segment["shape"] == artikel["uri"]]
@@ -145,28 +137,6 @@ def test_properties_that_need_an_iri_are_left_out(segmentor):
                 assert f"path <{path}>" not in segmentor.system_prompt
 
 
-def test_inputs_are_resources_the_shapes_fit(segmentor):
-    # A resource is input when one of the selected shapes fits its types: their target class, or a superclass of it
-    # (e.g. an eli:Expression can be enriched as a besluit:Besluit)
-    for definition in segmentor.definitions:
-        target_class = definition["target_class"]
-        for type_ in segmentor._superclasses(target_class):
-            assert segmentor._is_input({type_}), f"{type_} fits {target_class}"
-    assert not segmentor._is_input({"http://example.org/UnrelatedClass"})
-    assert not segmentor._is_input(set())
-
-
-@pytest.mark.parametrize("folder", CASES, ids=[folder.name for folder in CASES])
-def test_related_inputs_come_from_the_task(segmentor, folder):
-    # Needs the triplestore: a temporary task whose input container holds the case's input
-    case = load_case(folder)
-    with temporary_task(case["input"]) as task:
-        related = segmentor.fetch_related_entities(task.task_uri, case["text"])
-    if not related:
-        pytest.skip(f"{case['input']} is not in the triplestore")
-    assert related == [case["input"]]
-
-
 def test_a_target_without_tuning_divides_documents_by_the_shape_only():
     # The rules on numbered sub-parts and headings belong to the decisions target: without them, the prompt has no
     # such rules and occurrences are not merged
@@ -179,8 +149,67 @@ def test_a_target_without_tuning_divides_documents_by_the_shape_only():
     assert "numbered sub-part" not in s.system_prompt
     # The heading rule is for every target
     assert "\n    - A heading is a line of at most 4 words that ends with a colon" in s.system_prompt
-    segments = [{"uri": "http://example.org/1", "shape": "S", "existing": False, "start": 0, "end": 9,
+    segments = [{"uri": "http://example.org/1", "shape": "S", "start": 0, "end": 9,
                  "text": "Artikel 1", "properties": []},
-                {"uri": "http://example.org/1.1", "shape": "S", "existing": False, "start": 10, "end": 21,
+                {"uri": "http://example.org/1.1", "shape": "S", "start": 10, "end": 21,
                  "text": "Artikel 1.1", "properties": []}]
     assert s._merge_sub_parts(segments, "Artikel 1\nArtikel 1.1") == segments
+
+
+def test_new_entities_can_refer_to_existing_ones_of_the_right_class(offline_segmentor):
+    # A related entity is never returned or changed, but a relation of a new entity can refer to it, when it is an
+    # instance of the class the relation needs
+    s = offline_segmentor
+    besluit, artikel = (s.definitions_by_class[str(BESLUIT[name])] for name in ("Besluit", "Artikel"))
+    has_part = next(prop["key"] for prop in besluit["properties"] if prop["path"] == str(ELI.has_part))
+    text = "1. Een besluit.\n\nArtikel 1. Een artikel."
+    article, other = URIRef("http://example.org/artikel"), URIRef("http://example.org/iets")
+    graph = Graph()
+    graph.add((article, RDF.type, BESLUIT.Artikel))
+    graph.add((other, RDF.type, URIRef("http://example.org/Iets")))
+    context = {"graph": graph, "language": "nl", "entities": {
+        "E1": {"uri": str(article), "types": {str(BESLUIT.Artikel)}},
+        "E2": {"uri": str(other), "types": {"http://example.org/Iets"}}}}
+    answer = {"segments": [
+        {"id": "N1", "shape": besluit["key"], "text": text,
+         "properties": [{"property": has_part, "ref": "E1"}, {"property": has_part, "ref": "E2"}]},
+        {"entity": "E1", "shape": artikel["key"], "properties": []},
+    ]}
+
+    problems = []
+    segments = s._segments_from_answer(text, answer, problems, context)
+
+    assert [segment["key"] for segment in segments] == ["N1"]
+    assert [prop["ref"] for prop in segments[0]["properties"] if "ref" in prop] == [str(article)]
+    assert any("E2 is not an instance of" in problem for problem in problems)
+    assert any("E1 is an existing entity" in problem for problem in problems)
+    assert article not in set(Graph().parse(data=s.to_turtle(segments), format="turtle").subjects())
+
+
+def test_each_entity_is_linked_to_its_input_by_an_annotation(monkeypatch):
+    # An oa:Annotation per new entity: the entity as body, the input with the entity's position in its text as target
+    import src.task.entity_extraction as task_module
+    created = []
+
+    class Annotation:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+        def add_to_triplestore_if_not_exists(self):
+            created.append(self.kwargs)
+            return f"http://example.org/annotation/{len(created)}"
+
+    monkeypatch.setattr(task_module, "NERAnnotation", Annotation)
+    monkeypatch.setattr(task_module, "get_agent_uri", lambda component: f"{component}/agent")
+    task = task_module.EntityExtractionTask.__new__(task_module.EntityExtractionTask)
+    task.task_uri = "http://example.org/task"
+    segments = [{"uri": "http://example.org/besluit/1", "start": 0, "end": 40},
+                {"uri": "http://example.org/artikel/1", "start": 20, "end": 40}]
+
+    assert task.annotate("http://example.org/expression", segments) == [
+        "http://example.org/annotation/1", "http://example.org/annotation/2"]
+    assert [(a["source_uri"], a["class_uri"], a["start"], a["end"]) for a in created] == [
+        ("http://example.org/expression", "http://example.org/besluit/1", 0, 40),
+        ("http://example.org/expression", "http://example.org/artikel/1", 20, 40)]
+    assert {a["activity_id"] for a in created} == {"http://example.org/task"}
+    assert {a["agent"] for a in created} == {f"{task_module.EXTRACTOR_COMPONENT}/agent"}

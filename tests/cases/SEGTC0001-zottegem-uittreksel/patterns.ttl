@@ -9,8 +9,8 @@
     test:count [ test:class besluit:Besluit ; test:number 1 ] ,
                [ test:class besluit:Artikel ; test:number 6 ] .
 
-# The expression is the decision
-<http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> a besluit:Besluit ;
+# The decision is a new entity
+[] a besluit:Besluit ;
     # The motivation is everything between the title and the decision itself
     besluit:motivering "Bevoegd Jenne De Potter Bevoegdheid Artikel 40, §3 van het Decreet Lokaal Bestuur."^^test:startsWith ,
                        "Wetten en reglementen Het decreet van 16 mei 2008"^^test:contains ,

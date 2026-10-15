@@ -9,7 +9,13 @@ describe and the values of their properties. The service then:
 
 - locates every value verbatim in the text;
 - validates the result against the shapes, and asks the LLM again with the violations, up to three times;
-- writes the result to the AI graph: the input enriched with its segments, and the new entities (e.g. articles).
+- writes every entity it finds (e.g. a decision and its articles) to the AI graph as a new entity, with a new URI;
+- links each new entity to the input with an `oa:Annotation` (`oa:motivatedBy oa:tagging`): the entity as
+  `oa:hasBody`, and as `oa:hasTarget` the input with a `oa:TextPositionSelector` of where in its text the entity was
+  found. The task's `prov:Activity` generated it, associated with this service's component.
+
+The input itself is never changed. New entities can refer to existing entities related to the input (see
+`related_entities`), which are never changed either.
 
 Linking the entities to the same entities already in the triplestore (e.g. a decision harvested from another
 publication) is left to a separate reconciliation service.
@@ -51,8 +57,8 @@ are scheduled.
     -d '{"target_nodes": ["http://data.lblod.info/id/expressions/<uuid>"]}'
   ```
 
-An expression that already has segmentation values in the AI graph is passed forward without segmenting it again; to
-segment it again, delete those triples.
+An input that already has annotations of this service in the AI graph is passed forward without segmenting it again;
+to segment it again, delete those annotations.
 
 ## Configuration
 
@@ -98,12 +104,13 @@ Relative paths are resolved against the project root.
 | Key | Effect |
 |---|---|
 | `label` | Human-readable name of the target |
-| `prefixes` | `PREFIX` declarations used by `target_filter` |
+| `prefixes` | `PREFIX` declarations used by `target_filter` and `related_entities` |
 | `target_filter` | SPARQL graph pattern on `?target`, the resource; the target applies when it matches. It runs without `GRAPH`, so it matches in any graph |
+| `related_entities` | SPARQL graph pattern binding `?entity` from `?target`: existing entities related to the resource (e.g. the session of a decision). They are listed in the prompt, and the new entities can refer to them through a relation, when they are an instance of the class the relation needs. They are never changed. Leave it out for none |
 | `shape_path` | SHACL shape (Turtle) describing what to segment |
 | `node_shapes` | Node shapes of the shape to segment; empty for all |
 | `html_example_path` | Example HTML document whose element ids match the shape's usage notes; it gives the examples in the prompt. Leave it out for no examples |
-| `ontologies` | Vocabularies whose `rdfs:subClassOf` hierarchy decides which shapes an existing entity can play |
+| `ontologies` | Vocabularies whose `rdfs:subClassOf` hierarchy decides which classes an entity is an instance of, e.g. whether an existing entity fits a relation |
 | `usage_note_predicate` | Property of the shape's node and property shapes holding the id of their example element; without it, there are no examples |
 | `text_predicate` | Property of the resource holding the text to segment, in any graph |
 | `numbered_parts` | `true` when the occurrences of a structure are numbered, with numbered sub-parts (`Artikel 1.1` under `Artikel 1`). The prompt then tells the LLM that a sub-part belongs to its part, and when the LLM returns a sub-part, or an occurrence without a number after a numbered one, anyway, it is merged into the occurrence before it. Default `false` |

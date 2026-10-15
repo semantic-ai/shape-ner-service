@@ -4,7 +4,7 @@
     You receive a document and a description of one or more STRUCTURES, derived from
     a SHACL shape. Each structure has a key (e.g. "S1") and may have PROPERTIES with
     their own keys (e.g. "S1.P1"). You may also receive EXISTING ENTITIES (keys
-    "E1", "E2", ...) that are already known for this document.
+    "E1", "E2", ...): entities that are already known, which occurrences can refer to.
 
     TASK
     - Find every occurrence of each structure in the document.
@@ -27,22 +27,18 @@
       with "ref", one ref per part.
 
     EXISTING ENTITIES
-    - When an occurrence is one of the existing entities, enrich that entity
-      instead of creating a new occurrence: refer to it with "entity" and give the
-      structure it plays in "shape" (one of its "can be enriched as" structures).
-      It needs no "text". Only give the properties it does not have yet.
-    - An existing entity marked "its text is the text below" holds the whole text.
-      When the text holds one occurrence of a structure that entity can be
-      enriched as, enrich the entity. When it holds several, they are new
-      occurrences, not that entity.
+    - Existing entities are never occurrences: do not return them, and do not
+      give them properties.
+    - An occurrence's relation can refer to an existing entity of the class the
+      relation needs: give its key ("E...") in "ref".
 
     RELATIONS
     - A property marked as a relation refers to another occurrence or existing
       entity: give its key in "ref" ("N..." id of an occurrence or "E..." key of
       an existing entity) instead of "text".
-    - The relation is given on the occurrence or entity that has the property.
-    - Always give every relation the document supports between the occurrences
-      and existing entities you return.
+    - The relation is given on the occurrence that has the property.
+    - Always give every relation the document supports from the occurrences you
+      return, to each other and to existing entities.
 
     COPYING TEXT
     - "text": the complete text of the occurrence or property value, copied
@@ -75,9 +71,7 @@
     {"segments": [
       {"id": "N1", "shape": "<structure key>", "text": "...",
        "properties": [{"property": "<property key>", "text": "..."},
-                      {"property": "<relation property key>", "ref": "<N or E key>"}]},
-      {"entity": "<E key>", "shape": "<structure key>",
-       "properties": [...]}
+                      {"property": "<relation property key>", "ref": "<N or E key>"}]}
     ]}
     Every new occurrence has a unique "id" (N1, N2, ...). List new occurrences in
     document order. Return {"segments": []} if nothing is found.
@@ -116,15 +110,3 @@
         Example: 1
     [S2.P3] titel: Titel van de legale verschijningsvorm. (path <http://data.europa.eu/eli/ontology#title>, datatype <http://www.w3.org/2001/XMLSchema#string>, min 1)
         Example: Artikel 1 van aanvullende belasting op de personenbelasting voor 2024 -2025
-
-    EXISTING ENTITIES
-[E1] <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> (its text is the text below)
-  Types: <http://data.europa.eu/eli/ontology#Expression>
-  Can be enriched as: S1 (Besluit), S2 (Artikel)
-  Known values:
-    <http://data.europa.eu/eli/ontology#is_embodied_by>: <http://data.lblod.info/id/manifestations/0817ae00-3bdf-4e4f-8c04-f5ea37ef630c>
-    <http://data.europa.eu/eli/ontology#language>: <http://publications.europa.eu/resource/authority/language/NLD>
-    <http://data.europa.eu/eli/ontology#realizes>: <http://data.lblod.info/id/works/c01349e3-89d6-4342-a43d-7aad99d073c5>
-    <http://purl.org/dc/terms/created>: "2026-09-30T07:03:05+00:00"
-    <http://purl.org/dc/terms/modified>: "2026-09-30T07:03:05+00:00"
-    <https://data.europarl.europa.eu/def/epvoc#expressionContent>: the text below
