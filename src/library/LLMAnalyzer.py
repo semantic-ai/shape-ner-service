@@ -61,8 +61,10 @@ class LLMAnalyzer:
         system_prompt: str,
         user_prompt_template: str,
         expected_schema: Dict[str, Any],
-        text_limit: int = 8000,
+        text_limit: Optional[int] = 8000,
     ) -> Dict[str, Any]:
+        # text_limit=None sends the text as it is: the caller has already truncated it exactly where the offsets it
+        # resolves later refer to (e.g. the segmentor's numbered document, cut at a line boundary)
         user_prompt = user_prompt_template.format(text=text[:text_limit])
 
         messages = [

@@ -114,7 +114,7 @@ Relative paths are resolved against the project root.
 | `usage_note_predicate` | Property of the shape's node and property shapes holding the id of their example element; without it, there are no examples |
 | `text_predicate` | Property of the resource holding the text to segment, in any graph |
 | `numbered_parts` | `true` when the occurrences of a structure are numbered, with numbered sub-parts (`Artikel 1.1` under `Artikel 1`). The prompt then tells the LLM that a sub-part belongs to its part, and when the LLM returns a sub-part, or an occurrence without a number after a numbered one, anyway, it is merged into the occurrence before it. Default `false` |
-| `prompt_rules` | Rules on how the target's documents are divided, added to the prompt's rules on copying text. The `uittreksel` target has one: an occurrence is never split at a heading |
+| `prompt_rules` | Rules on how the target's documents are divided, added to the prompt's rules on spans. The `uittreksel` target has one: an occurrence is never split at a heading |
 
 ## Tests
 
