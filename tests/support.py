@@ -8,9 +8,11 @@ Shared helpers for the segmentation tests: a stand-in task, the LLM usage report
                     (what the target's related_entities query finds), with their triples
     prompts/        snapshot of the prompts per attempt (attempt-1-system.txt, attempt-1-user.txt, ...)
     answers.json    the recorded LLM answers, one per attempt
-    output.ttl      expected output: new entities as blank nodes, without their mu:uuid
+    output.ttl      expected output: the new entities and their annotations, with the URIs minted per run as blank
+                    nodes and without their mu:uuid
     patterns.ttl    patterns the output must match (see below)
-    out/            written by every run, not in git: segments.ttl, the segmentation result as the service writes it
+    out/            written by every run, not in git: segments.ttl, what the service writes: the new entities, and
+                    the annotations linking them to the input
 
 A normal run replays answers.json without the LLM or the triplestore: the segmentor's lookups read context.ttl. It
 fails when the prompts differ from the snapshot, the output is not isomorphic to output.ttl, or a pattern does not
@@ -41,7 +43,7 @@ import json
 from pathlib import Path
 
 import pytest
-from rdflib import BNode, Graph, Literal, Namespace, URIRef
+from rdflib import BNode, Dataset, Graph, Literal, Namespace, URIRef
 from rdflib.compare import graph_diff, isomorphic, to_isomorphic
 from rdflib.namespace import RDF
 
@@ -94,6 +96,7 @@ def usage_report(model_name: str, usage: dict, label: str = "") -> list[str]:
 # Test cases in case folders
 CASES_DIR = Path(__file__).parent / "cases"
 MU_UUID = URIRef("http://mu.semte.ch/vocabularies/core/uuid")
+PROV_GENERATED = URIRef("http://www.w3.org/ns/prov#generated")
 PREFIXES = {
     "besluit": "http://data.vlaanderen.be/ns/besluit#", "eli": "http://data.europa.eu/eli/ontology#",
     "prov": "http://www.w3.org/ns/prov#", "mu": "http://mu.semte.ch/vocabularies/core/",
@@ -215,13 +218,58 @@ def run_case(case: dict, record: bool) -> tuple[dict, list[dict], object, TaskSt
         if isinstance(e.__cause__, RecordingExhausted):
             raise e.__cause__ from None
         raise
+    result["annotations"] = annotate(case, result, task)
     return result, calls, segmentor, task
 
 
-def normalized_output(result: dict) -> Graph:
-    """The output with new entities as blank nodes and without their mu:uuid, which differ per run."""
+# Stands in for the agent URI the service registers for its component at startup (write_agent_info)
+AGENT = URIRef("http://example.org/agent/entity-extraction")
+
+
+def annotate(case: dict, result: dict, task: TaskStub) -> Graph:
+    """
+    The annotations the task writes for the result, linking each new entity to the input (EntityExtractionTask.annotate):
+    its NERAnnotation inserts run on an in-memory store instead of the triplestore.
+    """
+    import decide_ai_service_base.annotation.ner as ner
+    import src.task.entity_extraction as task_module
+    from decide_ai_service_base.sparql_config import GRAPHS
+
+    store = Dataset()
+    entity_task = task_module.EntityExtractionTask.__new__(task_module.EntityExtractionTask)
+    entity_task.task_uri = task.task_uri
+    update, get_agent_uri = ner.update, task_module.get_agent_uri
+    ner.update = lambda q, sudo=False: store.update(q)
+    task_module.get_agent_uri = lambda component: str(AGENT)
+    try:
+        entity_task.annotate(case["input"], result["segments"])
+    finally:
+        ner.update, task_module.get_agent_uri = update, get_agent_uri
+    annotations = Graph()
+    for triple in store.graph(URIRef(GRAPHS["ai"])):
+        annotations.add(triple)
+    return annotations
+
+
+def written(result: dict) -> Graph:
+    """What the service writes to the AI graph: the new entities, and the annotations linking them to the input."""
     graph = Graph().parse(data=result["turtle"], format="turtle")
-    new = sorted(URIRef(s["uri"]) for s in result["segments"])
+    for triple in result["annotations"]:
+        graph.add(triple)
+    for prefix, namespace in PREFIXES.items():
+        graph.bind(prefix, namespace)
+    return graph
+
+
+def normalized_output(result: dict) -> Graph:
+    """
+    What the service writes, with the URIs minted per run (the new entities, and the annotations with their targets and
+    selectors) as blank nodes, and without their mu:uuid.
+    """
+    graph = written(result)
+    activities = set(result["annotations"].subjects(PROV_GENERATED, None))
+    new = sorted({URIRef(s["uri"]) for s in result["segments"]}
+                 | {s for s in result["annotations"].subjects() if s not in activities})
     bnodes = {uri: BNode(f"new{i + 1}") for i, uri in enumerate(new)}
     output = Graph()
     for prefix, namespace in PREFIXES.items():
@@ -236,7 +284,7 @@ def normalized_output(result: dict) -> Graph:
 def write_result(case: dict, result: dict) -> None:
     out = case["folder"] / "out"
     out.mkdir(exist_ok=True)
-    (out / "segments.ttl").write_text(result["turtle"], encoding="utf-8")
+    (out / "segments.ttl").write_text(written(result).serialize(format="turtle"), encoding="utf-8")
 
 
 def write_output(case: dict, result: dict) -> None:
@@ -302,7 +350,7 @@ def check_patterns(case: dict, result: dict, segmentor) -> list[str]:
         if actual_counts.get(target_class, 0) != number:
             failures.append(f"expected {number} entities of {target_class}, found {actual_counts.get(target_class, 0)}")
 
-    graph = Graph().parse(data=result["turtle"], format="turtle")
+    graph = written(result)
     for group in _groups(case["expected"]):
         if not graph.query(_ask(group)).askAnswer:
             failures.append("pattern not in the output:\n" + _describe(group, case["expected"]))

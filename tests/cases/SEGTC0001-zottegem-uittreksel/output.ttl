@@ -1,97 +1,41 @@
 @prefix besluit: <http://data.vlaanderen.be/ns/besluit#> .
 @prefix eli: <http://data.europa.eu/eli/ontology#> .
+@prefix nif: <http://persistence.uni-leipzig.org/nlp2rdf/ontologies/nif-core#> .
+@prefix oa: <http://www.w3.org/ns/oa#> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-[] a besluit:Besluit ;
-    eli:has_part [ a besluit:Artikel ;
-            eli:number "3" ;
-            prov:value """Invoeren van geschrankt parkeren in de Parkstraat.
-
-Artikel 3.1. Deze maatregel zal aangeduid worden door:
-
- Het plaatsen van de verkeersborden E1 + onderbord G Type Xa (begin) waar het parkeren niet 
-toegestaan is.
-
- Het plaatsen van verkeersborden E9a + onderbord G Type Xa (begin) waar het parkeren wel 
-toegestaan is.
-
- Het aanbrengen van markeringen die de parkeerstroken aanduiden.""" ],
-        [ a besluit:Artikel ;
-            eli:number "1" ;
-            prov:value """Invoeren van éénrichtingsverkeer in de Grotstraat, uitgezonderd fietsers en bromfietsers klasse A.
-
-Artikel 1.1. Deze maatregel zal aangeduid worden door:
-
- Het plaatsen van verkeersbord F19 + onderbord M5 in het begin van de Grotstraat (voorbij het 
-Xpunt met Parkstraat) en met leesrichting Gentse Steenweg.
-
- Het plaatsen van verkeersbord F19 + onderbord M5 in de Grotstraat (voorbij het Xpunt met August 
-De Rouckstraat) en met leesrichting Gentse Steenweg.
-
- Het plaatsen van verkeersbord C1 + onderbord M3 in het begin van de Grotstraat (voorbij het 
-Xpunt met Gentse Steenweg) en met leesrichting Grotenbergestraat.
-
- Het plaatsen van verkeersbord C1 + onderbord M3 in de Grotstraat (voorbij het Xpunt met August 
-De Rouckstraat) en met leesrichting Grotenbergestraat.
-
-Elektronisch ondertekend document, blz. 2 van 4. Verifieerbaar via code.esignflow.be met code 2446-1849-2518-2282
-
-
-
- Het plaatsen van verkeersbord C31b + onderbord M3 in de Gentse Steenweg (ter hoogte van het 
-Xpunt met Grotstraat) en met leesrichting Gentse Steenweg.
-
- Het plaatsen van verkeersbord C31b + onderbord M3 in de August De Rouckstraat (ter hoogte van 
-het Xpunt met Grotstraat) en met leesrichting Grotstraat.
-
- Het plaatsen van verkeersbord C31a + onderbord M3 in de Gentse Steenweg (ter hoogte van het 
-Xpunt met Leenstraat) en met leesrichting Gentse Steenweg.""" ],
-        [ a besluit:Artikel ;
-            eli:number "4" ;
-            prov:value """Plaatsen van een verkeerseiland in de Parkstraat om te vermijden dat het éénrichtingsverkeer 
-wordt genegeerd.
-
-Artikel 4.1. Deze maatregel zal aangeduid worden door:
-
- Het aanbrengen van een verdrijvingsvlak met plooibakens
-
- Het aanbrengen van een fietssuggestiestrook naast het verdrijvingsvlak voor fietsers en 
-bromfietsers klasse A.""" ],
-        [ a besluit:Artikel ;
-            eli:number "5" ;
-            prov:value """Invoeren van parkeerverbod in de Leenstraat.
-
-Artikel 5.1. Deze maatregel zal aangeduid worden door:
-
- Het plaatsen van de verkeersborden E1 tussen de Gentse Steenweg en de bushalte (onpare kant).""" ],
-        [ a besluit:Artikel ;
-            eli:number "2" ;
-            prov:value """Invoeren van éénrichtingsverkeer in de Parkstraat, uitgezonderd fietsers en bromfietsers klasse A.
-
-Artikel 2.1. Deze maatregel zal aangeduid worden door:
-
- Het plaatsen van verkeersbord F19 + onderbord M5 in de Parkstraat (voorbij het Xpunt met Gentse 
-Steenweg) en met leesrichting Grotstraat.
-
- Het plaatsen van verkeersbord F19 + onderbord M5 in de Parkstraat (voorbij de uitrit van parking 
-Park Van Breivelde) en met leesrichting Grotstraat.
-
- Het plaatsen van verkeersbord C1 + onderbord M3 in de Parkstraat (voorbij het Xpunt met 
-Grotstraat) en met leesrichting Gentse Steenweg.
-
- Het plaatsen van verkeersbord C1 + onderbord M3 in de Parkstraat (voorbij de uitrit van parking 
-Park Van Breivelde) en met leesrichting Gentse Steenweg.
-
- Het plaatsen van verkeersbord C31b + M3 aan de uitrit van parking Park Van Breivelde, ter hoogte 
-van het Xpunt met Parkstraat.""" ],
-        [ a besluit:Artikel ;
-            eli:number "6" ;
-            prov:value """Dit aanvullend reglement zal ter kennisgeving worden toegestuurd aan de Vlaamse Overheid, 
-Afdeling Beleid Mobiliteit en Verkeersveiligheid, Departement Mobiliteit en Openbare Werken, 
-Koning Albert II-laan 20 bus 2, 1000 Brussel.""" ] ;
-    eli:title """17. Verkeer. Aanvullend politiereglement op het verkeer. De invoering van een nieuwe 
+<http://example.org/task/SEGTC0001-zottegem-uittreksel> a prov:Activity ;
+    prov:generated [ a oa:Annotation ;
+            nif:confidence "1.0"^^xsd:float ;
+            oa:hasBody _:new11 ;
+            oa:hasTarget [ a oa:SpecificResource ;
+                    oa:hasSelector [ a oa:TextPositionSelector ;
+                            oa:end 6577 ;
+                            oa:start 6336 ] ;
+                    oa:hasSource <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> ] ;
+            oa:motivatedBy oa:tagging ],
+        [ a oa:Annotation ;
+            nif:confidence "1.0"^^xsd:float ;
+            oa:hasBody _:new10 ;
+            oa:hasTarget [ a oa:SpecificResource ;
+                    oa:hasSelector [ a oa:TextPositionSelector ;
+                            oa:end 5251 ;
+                            oa:start 4362 ] ;
+                    oa:hasSource <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> ] ;
+            oa:motivatedBy oa:tagging ],
+        [ a oa:Annotation ;
+            nif:confidence "1.0"^^xsd:float ;
+            oa:hasBody [ a besluit:Besluit ;
+                    eli:has_part _:new10,
+                        _:new11,
+                        _:new12,
+                        _:new13,
+                        _:new8,
+                        _:new9 ;
+                    eli:title """17. Verkeer. Aanvullend politiereglement op het verkeer. De invoering van een nieuwe 
 verkeerscirculatie in de Parkstraat en Grotstraat. Aanpassing.""" ;
-    besluit:motivering """Bevoegd
+                    besluit:motivering """Bevoegd
 Jenne De Potter
 
 Bevoegdheid
@@ -138,7 +82,7 @@ deze wijzigingen.
 
 Stemmen
 Met algemene stemmen"""@nl ;
-    prov:value """Artikel 1. Invoeren van éénrichtingsverkeer in de Grotstraat, uitgezonderd fietsers en bromfietsers klasse A.
+                    prov:value """Artikel 1. Invoeren van éénrichtingsverkeer in de Grotstraat, uitgezonderd fietsers en bromfietsers klasse A.
 
 Artikel 1.1. Deze maatregel zal aangeduid worden door:
 
@@ -220,5 +164,140 @@ Elektronisch ondertekend document, blz. 3 van 4. Verifieerbaar via code.esignflo
 
 Artikel 6. Dit aanvullend reglement zal ter kennisgeving worden toegestuurd aan de Vlaamse Overheid, 
 Afdeling Beleid Mobiliteit en Verkeersveiligheid, Departement Mobiliteit en Openbare Werken, 
+Koning Albert II-laan 20 bus 2, 1000 Brussel.""" ] ;
+            oa:hasTarget [ a oa:SpecificResource ;
+                    oa:hasSelector [ a oa:TextPositionSelector ;
+                            oa:end 6577 ;
+                            oa:start 791 ] ;
+                    oa:hasSource <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> ] ;
+            oa:motivatedBy oa:tagging ],
+        [ a oa:Annotation ;
+            nif:confidence "1.0"^^xsd:float ;
+            oa:hasBody _:new8 ;
+            oa:hasTarget [ a oa:SpecificResource ;
+                    oa:hasSelector [ a oa:TextPositionSelector ;
+                            oa:end 6217 ;
+                            oa:start 6009 ] ;
+                    oa:hasSource <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> ] ;
+            oa:motivatedBy oa:tagging ],
+        [ a oa:Annotation ;
+            nif:confidence "1.0"^^xsd:float ;
+            oa:hasBody _:new13 ;
+            oa:hasTarget [ a oa:SpecificResource ;
+                    oa:hasSelector [ a oa:TextPositionSelector ;
+                            oa:end 5654 ;
+                            oa:start 5253 ] ;
+                    oa:hasSource <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> ] ;
+            oa:motivatedBy oa:tagging ],
+        [ a oa:Annotation ;
+            nif:confidence "1.0"^^xsd:float ;
+            oa:hasBody _:new9 ;
+            oa:hasTarget [ a oa:SpecificResource ;
+                    oa:hasSelector [ a oa:TextPositionSelector ;
+                            oa:end 4360 ;
+                            oa:start 2987 ] ;
+                    oa:hasSource <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> ] ;
+            oa:motivatedBy oa:tagging ],
+        [ a oa:Annotation ;
+            nif:confidence "1.0"^^xsd:float ;
+            oa:hasBody _:new12 ;
+            oa:hasTarget [ a oa:SpecificResource ;
+                    oa:hasSelector [ a oa:TextPositionSelector ;
+                            oa:end 6007 ;
+                            oa:start 5656 ] ;
+                    oa:hasSource <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> ] ;
+            oa:motivatedBy oa:tagging ] ;
+    prov:wasAssociatedWith <http://example.org/agent/entity-extraction> .
+
+_:new10 a besluit:Artikel ;
+    eli:number "2" ;
+    prov:value """Invoeren van éénrichtingsverkeer in de Parkstraat, uitgezonderd fietsers en bromfietsers klasse A.
+
+Artikel 2.1. Deze maatregel zal aangeduid worden door:
+
+ Het plaatsen van verkeersbord F19 + onderbord M5 in de Parkstraat (voorbij het Xpunt met Gentse 
+Steenweg) en met leesrichting Grotstraat.
+
+ Het plaatsen van verkeersbord F19 + onderbord M5 in de Parkstraat (voorbij de uitrit van parking 
+Park Van Breivelde) en met leesrichting Grotstraat.
+
+ Het plaatsen van verkeersbord C1 + onderbord M3 in de Parkstraat (voorbij het Xpunt met 
+Grotstraat) en met leesrichting Gentse Steenweg.
+
+ Het plaatsen van verkeersbord C1 + onderbord M3 in de Parkstraat (voorbij de uitrit van parking 
+Park Van Breivelde) en met leesrichting Gentse Steenweg.
+
+ Het plaatsen van verkeersbord C31b + M3 aan de uitrit van parking Park Van Breivelde, ter hoogte 
+van het Xpunt met Parkstraat.""" .
+
+_:new11 a besluit:Artikel ;
+    eli:number "6" ;
+    prov:value """Dit aanvullend reglement zal ter kennisgeving worden toegestuurd aan de Vlaamse Overheid, 
+Afdeling Beleid Mobiliteit en Verkeersveiligheid, Departement Mobiliteit en Openbare Werken, 
 Koning Albert II-laan 20 bus 2, 1000 Brussel.""" .
+
+_:new12 a besluit:Artikel ;
+    eli:number "4" ;
+    prov:value """Plaatsen van een verkeerseiland in de Parkstraat om te vermijden dat het éénrichtingsverkeer 
+wordt genegeerd.
+
+Artikel 4.1. Deze maatregel zal aangeduid worden door:
+
+ Het aanbrengen van een verdrijvingsvlak met plooibakens
+
+ Het aanbrengen van een fietssuggestiestrook naast het verdrijvingsvlak voor fietsers en 
+bromfietsers klasse A.""" .
+
+_:new13 a besluit:Artikel ;
+    eli:number "3" ;
+    prov:value """Invoeren van geschrankt parkeren in de Parkstraat.
+
+Artikel 3.1. Deze maatregel zal aangeduid worden door:
+
+ Het plaatsen van de verkeersborden E1 + onderbord G Type Xa (begin) waar het parkeren niet 
+toegestaan is.
+
+ Het plaatsen van verkeersborden E9a + onderbord G Type Xa (begin) waar het parkeren wel 
+toegestaan is.
+
+ Het aanbrengen van markeringen die de parkeerstroken aanduiden.""" .
+
+_:new8 a besluit:Artikel ;
+    eli:number "5" ;
+    prov:value """Invoeren van parkeerverbod in de Leenstraat.
+
+Artikel 5.1. Deze maatregel zal aangeduid worden door:
+
+ Het plaatsen van de verkeersborden E1 tussen de Gentse Steenweg en de bushalte (onpare kant).""" .
+
+_:new9 a besluit:Artikel ;
+    eli:number "1" ;
+    prov:value """Invoeren van éénrichtingsverkeer in de Grotstraat, uitgezonderd fietsers en bromfietsers klasse A.
+
+Artikel 1.1. Deze maatregel zal aangeduid worden door:
+
+ Het plaatsen van verkeersbord F19 + onderbord M5 in het begin van de Grotstraat (voorbij het 
+Xpunt met Parkstraat) en met leesrichting Gentse Steenweg.
+
+ Het plaatsen van verkeersbord F19 + onderbord M5 in de Grotstraat (voorbij het Xpunt met August 
+De Rouckstraat) en met leesrichting Gentse Steenweg.
+
+ Het plaatsen van verkeersbord C1 + onderbord M3 in het begin van de Grotstraat (voorbij het 
+Xpunt met Gentse Steenweg) en met leesrichting Grotenbergestraat.
+
+ Het plaatsen van verkeersbord C1 + onderbord M3 in de Grotstraat (voorbij het Xpunt met August 
+De Rouckstraat) en met leesrichting Grotenbergestraat.
+
+Elektronisch ondertekend document, blz. 2 van 4. Verifieerbaar via code.esignflow.be met code 2446-1849-2518-2282
+
+
+
+ Het plaatsen van verkeersbord C31b + onderbord M3 in de Gentse Steenweg (ter hoogte van het 
+Xpunt met Grotstraat) en met leesrichting Gentse Steenweg.
+
+ Het plaatsen van verkeersbord C31b + onderbord M3 in de August De Rouckstraat (ter hoogte van 
+het Xpunt met Grotstraat) en met leesrichting Grotstraat.
+
+ Het plaatsen van verkeersbord C31a + onderbord M3 in de Gentse Steenweg (ter hoogte van het 
+Xpunt met Leenstraat) en met leesrichting Gentse Steenweg.""" .
 
