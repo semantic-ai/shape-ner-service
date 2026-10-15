@@ -1,17 +1,15 @@
 import os
-import logging
 from threading import Lock
 from helpers import logger
 
 from src.airo import register_airo
-from src.task import SegmentationTask, SEGMENTATION_COMPONENT
-from src.translation_plugin_etranslation import _callback_storage, _callback_lock
+from src.task import EntityExtractionTask, EXTRACTOR_COMPONENT
 from decide_ai_service_base.util import fail_busy_and_scheduled_tasks, TaskProcessor, wait_for_triplestore, process_open_tasks, write_agent_info
 
 from decide_ai_service_base.schema import NotificationResponse, TaskOperationsResponse
 from decide_ai_service_base.task import Task
 
-from fastapi import APIRouter, BackgroundTasks, Request
+from fastapi import APIRouter, BackgroundTasks
 
 # The template mounts every APIRouter found in this module, so the test job
 # endpoint only exists when running in development mode
@@ -26,7 +24,7 @@ _open_tasks_lock = Lock()
 async def startup_event():
     logger.info("Startup running in PID %s", os.getpid())
     wait_for_triplestore()
-    write_agent_info("http://lblod.data.gift/id/components/shape-ner/v1.0.0", SEGMENTATION_COMPONENT)
+    write_agent_info("http://lblod.data.gift/id/components/shape-ner/v1.0.0", EXTRACTOR_COMPONENT)
 
     fail_busy_and_scheduled_tasks()
     register_airo()
@@ -51,97 +49,3 @@ def get_task_operations() -> TaskOperationsResponse:
             clz.__task_type__ for clz in Task.supported_operations()
         ]
     )
-
-
-@router.post("/etranslation/callback")
-async def etranslation_callback(request: Request):
-    """
-    Receive eTranslation REST v2 callbacks (success, error, delivery).
-
-    Mirrors the behaviour of CallbackHandler.do_POST in
-    src.translation_plugin_etranslation, storing the raw payload in the
-    shared _callback_storage dict keyed by (requestId, targetLanguage).
-    """
-    logger = logging.getLogger(__name__)
-
-    try:
-        data = await request.json()
-    except Exception:
-        # Malformed JSON
-        logger.warning("Received invalid JSON on /etranslation/callback")
-        return {"status": "invalid_json"}
-
-    request_id = data.get("requestId")
-
-    # Handle failure callbacks: errorCode + errorMessage + targetLanguages (array)
-    if "errorCode" in data and "targetLanguages" in data:
-        try:
-            req_id = int(data.get("requestId"))
-        except (TypeError, ValueError):
-            req_id = None
-
-        target_langs = data.get("targetLanguages", [])
-        if req_id is not None:
-            for t in target_langs:
-                key = (req_id, str(t).upper())
-                with _callback_lock:
-                    _callback_storage[key] = data
-
-            logger.info(
-                "Failure callback: requestId=%s, targets=%s, error=%s",
-                req_id,
-                target_langs,
-                data.get("errorCode"),
-            )
-        else:
-            logger.warning(
-                "Failure callback without valid requestId: %s", data)
-
-        return {"status": "received"}
-
-    # Extract targetLanguage from callback payload
-    target_lang = (
-        data.get("targetLanguage")
-        or data.get("target_language")
-        or data.get("targetLang")
-        or (
-            isinstance(data.get("result"), dict)
-            and data.get("result", {}).get("targetLanguage")
-        )
-        or None
-    )
-
-    if request_id and target_lang:
-        try:
-            req_id_int = int(request_id)
-        except (TypeError, ValueError):
-            logger.warning(
-                "Callback with non-integer requestId: %s", request_id)
-            return {"status": "ignored"}
-
-        key = (req_id_int, str(target_lang).upper())
-        with _callback_lock:
-            _callback_storage[key] = data
-        logger.info("Callback: requestId=%s, target=%s",
-                    request_id, target_lang)
-        return {"status": "received"}
-
-    if request_id:
-        # Fallback: store with UNKNOWN target
-        try:
-            req_id_int = int(request_id)
-        except (TypeError, ValueError):
-            logger.warning(
-                "Callback without valid requestId (cannot coerce to int): %s", data
-            )
-            return {"status": "ignored"}
-
-        key = (req_id_int, "UNKNOWN")
-        with _callback_lock:
-            _callback_storage[key] = data
-        logger.warning(
-            "Callback without targetLanguage: requestId=%s", request_id)
-        return {"status": "received"}
-
-    logger.warning("Callback without requestId: %s", data)
-    return {"status": "ignored"}

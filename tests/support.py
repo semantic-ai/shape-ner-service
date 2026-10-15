@@ -61,22 +61,14 @@ class TaskStub:
 
 
 def create_segmentor():
-    """LLMSegmentorWithShape with the segmentation LLM settings from the app config, as SegmentationTask would."""
+    """The segmentor EntityExtractionTask uses, with the settings from the app config."""
     from src.config import get_config
-    from src.library.segmentors import LLMSegmentorWithShape
+    from src.task.entity_extraction import create_segmentor as create_task_segmentor
 
     llm_config = get_config().segmentation.llm
     if llm_config.provider != "ollama" and not llm_config.api_key:
         pytest.skip(f"No API key configured for segmentation provider {llm_config.provider}")
-    return LLMSegmentorWithShape(
-        provider=llm_config.provider,
-        model_name=llm_config.model_name,
-        api_key=llm_config.api_key.get_secret_value() if llm_config.api_key else None,
-        base_url=llm_config.base_url,
-        temperature=llm_config.temperature,
-        max_retries=llm_config.max_retries,
-        retry_delay=llm_config.retry_delay,
-    )
+    return create_task_segmentor()
 
 
 @contextmanager

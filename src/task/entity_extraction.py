@@ -1,240 +1,48 @@
 import uuid
-from typing import Optional, Any
 
-from helpers import query, update
+from helpers import query, update, logger
 from string import Template
 from escape_helpers import sparql_escape_uri, sparql_escape_string
-from helpers import logger
+from rdflib import Graph
 
 from decide_ai_service_base.task import DecisionTask
-from decide_ai_service_base.sparql_config import get_prefixes_for_query, GRAPHS, TASK_OPERATIONS, AGENT_TYPES, LANGUAGE_CODE_TO_URI
-from decide_ai_service_base.util import (
-    get_agent_uri
-)
-from decide_ai_service_base.annotation import RelationExtractionAnnotation
+from decide_ai_service_base.sparql_config import get_prefixes_for_query, GRAPHS
 
-from ..ner_functions import extract_entities
 from ..config import get_config
-from ..entity_mappers import map_entity_to_annotations, resolve_work_uri_for_expression
-from ..helper_functions import fail_if_no_successes
-from ..library.entity_projections import project_spans
-from ..library.entity_formatter import EntityFormatter
-from .dedup import get_existing_annotations
-
-# Instantiate a single EntityFormatter to reuse across tasks.
-entity_formatter = EntityFormatter()
+from .dedup import get_existing_outputs
 
 EXTRACTOR_COMPONENT = "http://lblod.data.gift/id/components/entity-extraction/v1.0.0"
+SHAPE_NER_OPERATION = "http://lblod.data.gift/id/jobs/concept/TaskOperation/shape-ner"
+# Triples per INSERT DATA when writing a segmentation to the triplestore
+INSERT_BATCH_SIZE = 100
+
+
+def create_segmentor():
+    """The entity extraction's segmentor, LLMSegmentorWithShape, with the segmentation settings from the app config."""
+    from ..library.segmentors import LLMSegmentorWithShape
+    seg_config = get_config().segmentation
+    return LLMSegmentorWithShape(
+        provider=seg_config.llm.provider,
+        model_name=seg_config.llm.model_name,
+        api_key=seg_config.llm.api_key.get_secret_value() if seg_config.llm.api_key else None,
+        base_url=seg_config.llm.base_url,
+        temperature=seg_config.llm.temperature,
+        max_retries=seg_config.llm.max_retries,
+        retry_delay=seg_config.llm.retry_delay,
+    )
+
 
 class EntityExtractionTask(DecisionTask):
-    """Task that extracts named entities from text."""
+    """
+    Extract the entities of each input expression: segment it along the SHACL shape (see LLMSegmentorWithShape) and
+    write the result, the expression with its segments, to the AI graph.
+    """
 
-    __task_type__ = TASK_OPERATIONS["entity_extraction"]
-
-    def create_language_relation(self, source_uri: str, language: str):
-        """
-        Create a language annotation for the source.
-
-        Note: An alternative approach would be to use an "UNK" (unknown) token
-        for unsupported languages to preserve metadata that language detection
-        was attempted, rather than silently skipping the annotation.
-        """
-        lang_uri = LANGUAGE_CODE_TO_URI.get(language)
-        if not lang_uri:
-            error_msg = f"Unsupported language code '{language}' - cannot create language annotation"
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-        RelationExtractionAnnotation(
-            subject=source_uri,
-            predicate="eli:language",
-            obj=sparql_escape_uri(lang_uri),
-            activity_id=self.task_uri,
-            source_uri=source_uri,
-            start=None,
-            end=None,
-            agent=get_agent_uri(EXTRACTOR_COMPONENT),
-            agent_type=AGENT_TYPES["ai_component"]
-        ).add_to_triplestore_if_not_exists()
-
-    def create_general_entity_annotations(self, source_uri: str, entities: list[dict[str, Any]]) -> list[str]:
-        """
-        Creates RDF annotations for a list of general entity extraction results using per-label handler logic.
-
-        Args:
-            source_uri (str): The URI of the source expression or resource.
-            entities (list[dict[str, Any]]): List of extracted entities, each being a dictionary
-                with at minimum 'label', 'text', 'start', and 'end' keys.
-
-        Returns:
-            list[str]: List of URIs of the created annotation resources for applicable entities.
-        """
-        logger.info(
-            f"Creating general entity annotations for source_uri={source_uri} "
-            f"(task source={self.source})"
-        )
-
-        created_annotation_uris: list[str] = []
-        errors: list[str] = []
-        successes = 0
-
-        # Resolve the work URI for this expression once (may be None if unknown)
-        work_uri = resolve_work_uri_for_expression(source_uri)
-
-        for entity in entities:
-            try:
-                annotation_uris = map_entity_to_annotations(
-                    task=self,
-                    work_uri=work_uri,
-                    expression_uri=source_uri,
-                    entity=entity,
-                )
-                created_annotation_uris.extend(annotation_uris)
-                successes += 1
-            except Exception as e:
-                logger.error(
-                    f"Failed to map entity '{entity.get('text')}' "
-                    f"({entity.get('label')}) for source {source_uri}: {e}",
-                    exc_info=True,
-                )
-                errors.append(
-                    f"{entity.get('text')!r} ({entity.get('label')}): "
-                    f"{type(e).__name__}: {e}"
-                )
-
-        fail_if_no_successes(
-            label=f"Entity mapping for {source_uri}",
-            total=len(entities),
-            successes=successes,
-            errors=errors,
-        )
-
-        return created_annotation_uris
-
-    def extract_general_entities(self, task_data: str, language: str = None, method: str = None) -> list[dict[str, Any]]:
-        """
-        Extract general NER entities (PERSON, ORG, DATE, etc.) from text.
-
-        Args:
-            task_data: Text to extract entities from
-            language: Language for extraction ('nl', 'de', 'en'). Defaults to config.ner.language.
-            method: Extraction method ('regex', 'spacy', 'flair', 'composite', 'huggingface'). Defaults to config.ner.method.
-        """
-        config = get_config()
-        if language is None:
-            language = config.ner.language
-        if method is None:
-            method = config.ner.method
-
-        logger.info(
-            f"Extracting general entities using {method}/{language}")
-
-        # Extract entities using the factory pattern
-        entities = extract_entities(
-            task_data, language=language, method=method, task=self)
-        logger.info(f"Found {len(entities)} general entities")
-
-        return entities
-
-    def fetch_english_expression_uri(self) -> Optional[str]:
-        """
-        Find the English expression that realizes the same work as the source expression.
-        Returns the URI of the English expression if found, None otherwise.
-        """
-        work_uri = self.fetch_work_uri()
-        if not work_uri:
-            logger.info(
-                f"No work found for expression {self.source}, cannot find English translation")
-            return None
-
-        # Get English language URI
-        en_lang_uri = LANGUAGE_CODE_TO_URI.get("en")
-        if not en_lang_uri:
-            logger.warning(
-                "English language URI not found in LANGUAGE_CODE_TO_URI")
-            return None
-
-        # Query for English expression that realizes the same work
-        # Check via language annotation (since we use TripletAnnotation for language, not dct:language)
-        query_template = Template(
-            get_prefixes_for_query("eli", "rdf", "oa") +
-            """
-            SELECT DISTINCT ?en_expr WHERE {
-              # Find expressions that realize the work
-              GRAPH ?g {
-                ?en_expr a eli:Expression ;
-                  eli:realizes | ^eli:is_realized_by $work .
-              }
-              # And have English language annotation
-              GRAPH $graph {
-                ?ann oa:hasBody ?stmt .
-                ?stmt a rdf:Statement ;
-                  rdf:subject ?en_expr ;
-                  rdf:predicate eli:language ;
-                  rdf:object $en_lang .
-              }
-            }
-            LIMIT 1
-            """
-        )
-
-        query_result = query(
-            query_template.substitute(
-                work=sparql_escape_uri(work_uri),
-                en_lang=sparql_escape_uri(en_lang_uri),
-                graph=sparql_escape_uri(GRAPHS["ai"])
-            ),
-            sudo=True
-        )
-
-        bindings = query_result.get("results", {}).get("bindings", [])
-        if bindings and "en_expr" in bindings[0]:
-            en_expr_uri = bindings[0]["en_expr"]["value"]
-            logger.info(
-                f"Found English expression {en_expr_uri} for work {work_uri}")
-            return en_expr_uri
-
-        logger.info(f"No English expression found for work {work_uri}")
-        return None
-
-    def fetch_expression_data(self, expression_uri: str) -> str:
-        """
-        Retrieve the text content from a specific expression URI.
-
-        Only epvoc:expressionContent, not title/description/decision_basis: this is
-        used as the projection target for spans extracted from the English translation,
-        and translation only ever covers expressionContent (see TranslationTask). Mixing
-        in the other fields would put the projection target text out of scope with the
-        text the spans were computed against, and with the offsets we'd be saving.
-        """
-        query_template = Template(
-            get_prefixes_for_query("epvoc") +
-            """
-            SELECT DISTINCT ?content
-            WHERE {
-              GRAPH ?graph {
-                VALUES ?s {
-                  $expression
-                }
-                OPTIONAL { ?s epvoc:expressionContent ?content }
-              }
-            }
-        """)
-
-        query_result = query(
-            query_template.substitute(
-                expression=sparql_escape_uri(expression_uri)),
-            sudo=True
-        )
-
-        bindings = query_result.get("results", {}).get("bindings", [])
-        if bindings and "content" in bindings[0]:
-            return bindings[0]["content"].get("value", "")
-        return ""
+    __task_type__ = SHAPE_NER_OPERATION
 
     def fetch_eli_expressions(self) -> dict[str, list[str]]:
         """
         Retrieve the ELI expressions and their contents from the task's input container.
-        Note that these will be the translated expressions.
 
         Returns:
             Dictionary containing:
@@ -256,12 +64,10 @@ class EntityExtractionTask(DecisionTask):
             GRAPH {sparql_escape_uri(GRAPHS["expressions"])} {{
                 ?expression a eli:Expression ;
                             epvoc:expressionContent ?content .
-            }}            
+            }}
             }}
             """
-        ).substitute(
-            task=sparql_escape_uri(self.task_uri)
-        )
+        ).substitute(task=sparql_escape_uri(self.task_uri))
 
         bindings = query(q, sudo=True).get("results", {}).get("bindings", [])
         if not bindings:
@@ -279,6 +85,36 @@ class EntityExtractionTask(DecisionTask):
             "expression_uris": expression_uris,
             "expression_contents": expression_contents
         }
+
+    def fetch_segmented(self, expression_uris: list[str], segmentor) -> set[str]:
+        """
+        The expressions segmented before: the AI graph already holds a value of one of the shape's properties on
+        them, e.g. their parts (eli:has_part).
+        """
+        paths = sorted({prop["path"] for definition in segmentor.definitions for prop in definition["properties"]})
+        existing = get_existing_outputs(
+            expression_uris,
+            f"""
+            VALUES ?path {{ {" ".join(sparql_escape_uri(path) for path in paths)} }}
+            GRAPH {sparql_escape_uri(GRAPHS["ai"])} {{
+                ?expression ?path ?result .
+            }}
+            """,
+        )
+        return set(existing)
+
+    def insert_segmentation(self, turtle: str) -> None:
+        """Write the segmentation (Turtle from the segmentor) to the AI graph."""
+        triples = Graph().parse(data=turtle, format="turtle").serialize(format="nt").splitlines()
+        triples = [triple for triple in triples if triple.strip()]
+        for i in range(0, len(triples), INSERT_BATCH_SIZE):
+            update(
+                f"INSERT DATA {{ GRAPH {sparql_escape_uri(GRAPHS['ai'])} {{\n"
+                + "\n".join(triples[i:i + INSERT_BATCH_SIZE])
+                + "\n} }",
+                sudo=True,
+            )
+        logger.info(f"Wrote {len(triples)} triples of the segmentation to {GRAPHS['ai']}")
 
     def create_output_container(self, resource: str) -> str:
         """
@@ -315,88 +151,54 @@ class EntityExtractionTask(DecisionTask):
 
     def process(self):
         """
-        Process NER task by retrieving English translation from database and extracting entities.
-        Assumes TranslationTask has already run and created the English expression.
+        Extract the entities of each input expression and write the result to the AI graph; the expression, with its
+        segments, is passed forward.
         """
         eli_expressions = self.fetch_eli_expressions()
         expression_uris = eli_expressions["expression_uris"]
+        if not expression_uris:
+            return
         skipped_empty = 0
 
-        # Expressions that already have entity annotations were processed
-        # before; reuse those annotations instead of re-extracting
-        already_extracted = get_existing_annotations(
-            expression_uris, get_agent_uri(EXTRACTOR_COMPONENT))
-        if already_extracted:
+        # The shape, examples and vocabularies are loaded once for all expressions
+        segmentor = create_segmentor()
+
+        # Expressions segmented before are passed forward without segmenting them again
+        already_segmented = self.fetch_segmented(expression_uris, segmentor)
+        if already_segmented:
             logger.info(
-                f"{len(already_extracted)} of {len(expression_uris)} "
-                f"expressions already have entity annotations, reusing those")
+                f"{len(already_segmented)} of {len(expression_uris)} "
+                f"expressions were already segmented, skipping those")
 
-        for i in range(len(expression_uris)):
-            target_expression_uri = expression_uris[i]
-            target_english_text = eli_expressions["expression_contents"][i]
-
-            if target_expression_uri in already_extracted:
+        for expression_uri, text in zip(expression_uris, eli_expressions["expression_contents"]):
+            if expression_uri in already_segmented:
                 logger.info(
-                    f"Expression {target_expression_uri} already has "
-                    f"{len(already_extracted[target_expression_uri])} entity "
-                    f"annotations, passing those forward without re-extracting")
-                # pass the existing annotations forward so the linking task
-                # can still process them
-                for annotation_uri in already_extracted[target_expression_uri]:
-                    self.results_container_uris.append(
-                        self.create_output_container(annotation_uri))
+                    f"Expression {expression_uri} was already "
+                    f"segmented, passing it forward without re-segmenting")
+                self.results_container_uris.append(
+                    self.create_output_container(expression_uri))
                 continue
 
-            logger.info(
-                f"Processing entity extraction for source: {target_expression_uri}")
-
-            if not target_english_text or not target_english_text.strip():
+            if not text or not text.strip():
                 logger.warning(
-                    f"No content available for entity extraction on {target_expression_uri}"
+                    f"No content available for segmentation on {expression_uri}"
                 )
                 skipped_empty += 1
                 continue
 
-            # Extract general entities (DATE, etc.) on the English text
-            general_entities = self.extract_general_entities(
-                target_english_text, language="en")
-
-            # Format entities: parse dates/periods and split locations into individual entities.
-            # This adds structured 'formatted' fields to each entity.
-            general_entities_formatted = entity_formatter.format(general_entities)
-
-            entity_uris = self.create_general_entity_annotations(
-                target_expression_uri, general_entities_formatted)
-
-            for entity_uri in entity_uris:
-                self.results_container_uris.append(
-                    self.create_output_container(entity_uri))
-
-            # Projection back to original/source expression
-            if not general_entities_formatted:
-                continue
-
-            source_expression_uri, source_text = self.resolve_projection_context(target_expression_uri,translated_text=target_english_text)
-            if source_expression_uri == target_expression_uri:
-                continue
-            if not source_text:
+            logger.info(f"Extracting entities of {expression_uri}")
+            # The segmentor finds the expression through the task's input container, and enriches it
+            result = segmentor.segment_and_validate(text, task=self)
+            if not result["conforms"] or result["unlocated"]:
                 logger.warning(
-                    f"No source text available to project entities onto for {source_expression_uri}"
-                )
-                continue
+                    f"Writing the segmentation of {expression_uri} with problems: "
+                    f"{len(result['violations'])} violations, {len(result['unlocated'])} problems in the answer")
+            self.insert_segmentation(result["turtle"])
 
-            # Project already-formatted entities onto source text.
-            general_entities_projected = project_spans(target_english_text, source_text, general_entities_formatted)
+            self.results_container_uris.append(
+                self.create_output_container(expression_uri))
 
-            logger.info(f"[extraction]: {general_entities_formatted}")
-            logger.info(f"[projection]: {general_entities_projected}")
-
-            entity_uris_projected = self.create_general_entity_annotations(source_expression_uri, general_entities_projected)
-            for projected_entity_uri in entity_uris_projected:
-                self.results_container_uris.append(
-                    self.create_output_container(projected_entity_uri))
-
-        if expression_uris and skipped_empty == len(expression_uris):
+        if skipped_empty == len(expression_uris):
             raise RuntimeError(
                 f"Entity extraction task {self.task_uri}: "
                 f"all {len(expression_uris)} input expressions had empty content, "

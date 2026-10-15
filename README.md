@@ -1,330 +1,99 @@
-# Geocoding & NER Service
+# Entity extraction service
 
-This repo provides a unified service that processes text to extract and resolve geolocations, as well as legal entities. It combines natural language processing (NLP) for entity extraction with geocoding to map locations to geographic coordinates.
+Extracts the entities in decision texts, as described by a SHACL shape. For each expression in a `shape-ner` task, it
+segments the text along the shape: an LLM finds the structures the shape describes (e.g. a decision and its articles)
+and the values of their properties. The service then:
 
-Location extraction uses the RobBERT NER model (Ghent-focused). Entity extraction supports Dutch, German, English with multiple extraction methods (composite, HuggingFace, Flair, regex).
+- locates every value verbatim in the text;
+- validates the result against the shape, and asks the LLM again with the violations, up to three times;
+- writes the result to the AI graph: the expression enriched with its segments, the new entities (e.g. articles), and
+  an `oa:Annotation` linking a decision to an existing one with the same title.
 
-## Features
-
-- **Location extraction**: CITY, DOMAIN, HOUSENUMBERS, INTERSECTION, POSTCODE, PROVINCE, ROAD, STREET (Ghent-focused, geocoded via Nominatim)
-  - Model: [lblod/RoBERTa-NER-BE-Loc](https://huggingface.co/lblod/RoBERTa-NER-BE-Loc)
-- **Legal entities**: DATE, LOCATION, LEGAL_GROUND, ADMINISTRATIVE_BODY, MANDATARY (HuggingFace, default composite method)
-  - Model: [lblod/multilingual-ner-abb-improved](https://huggingface.co/lblod/multilingual-ner-abb-improved)
-- **Refined types**: Dates (publication_date, session_date, etc.) and locations (impact_location, context_location). The model can also output `legal_date`, but this label is intentionally filtered out and not processed further.
-  - Model: [lblod/longformer-classifier-refinement-abb](https://huggingface.co/lblod/longformer-classifier-refinement-abb)
-- **Translation**: LangChain (Ollama, OpenAI, Mistral, …), HuggingFace, eTranslation (EU)
-- **Storage**: All annotations stored in SPARQL triplestore with full provenance
+The task is `EntityExtractionTask` in [src/task/entity_extraction.py](src/task/entity_extraction.py); its
+segmentor is `LLMSegmentorWithShape` in [src/library/segmentors.py](src/library/segmentors.py).
 
 ## Requirements
 
 - Docker and Docker Compose
-- Access to SPARQL triplestore (configured via `MU_SPARQL_ENDPOINT`)
+- The app-decide stack (triplestore, delta-notifier, job-controller, annotation-job-splitter), whose Docker network
+  `app-decide_default` the service joins
+- An API key for the configured LLM provider
 
-## Quick Start
+## Quick start
 
+Put the API key in a `docker-compose.override.yml` (ignored by git, so the key is never committed):
+```yaml
+services:
+  shape-ner-service:
+    environment:
+      SEGMENTATION__LLM__API_KEY: "..."
+```
+and start the service:
 ```bash
 docker compose up
 ```
 
-The service listens on port 8082 (configurable in `docker-compose.yaml`). Send delta notifications to `POST /delta` to trigger task processing.
+The service listens on host port 8086 (see `docker-compose.yaml`). The delta-notifier calls `POST /delta` when tasks
+are scheduled.
 
-For eTranslation callback setup, see [fastapi_callback_setup.md](fastapi_callback_setup.md).
-
-## API Endpoints
+## API endpoints
 
 - `POST /delta` - Receive delta notifications for task processing
 - `GET /task/operations` - List available task operations
-- `POST /etranslation/callback` - eTranslation service callback endpoint
 - `POST /test/job` - **Development only** (`MODE=development`). Inserts a `shape-ner` job with a SHACL target shape and a scheduled `singleton-job` task, so the job-controller and annotation-job-splitter create the `shape-ner` tasks. Body: either `target_nodes` (expression URIs), or `target_class` together with `target_graph`:
   ```bash
   curl -X POST localhost:8086/test/job -H 'Content-Type: application/json' \
     -d '{"target_nodes": ["http://data.lblod.info/id/expressions/<uuid>"]}'
   ```
 
+An expression that already has segmentation values in the AI graph is passed forward without segmenting it again; to
+segment it again, delete those triples.
+
 ## Configuration
 
-Main settings in `config.json`. The file is validated at startup via Pydantic — invalid values cause startup failure with a descriptive error.
+Settings are in `config.json`, validated at startup via Pydantic: invalid values cause a startup failure with a
+descriptive error. Secrets go in environment variables, with `__` as the nested delimiter (e.g.
+`SEGMENTATION__LLM__API_KEY`), set in `docker-compose.override.yml`; never commit them to `config.json`.
 
-Secrets must be placed in environment variables. See also `docker-compose.yml`. Following variables can be set:
-```
-# translation
-# When translation provider is etranslation, this bearer token will be used for authentication
-TRANSLATION__ETRANSLATION__BEARER_TOKEN: "SECRET"
-# When translation provider is etranslation and bearer token is not set or empty, this password (in combination with the username) will be used for authentication
-TRANSLATION__ETRANSLATION__PASSWORD: "SECRET"
-
-# segmentation
-# API key for the segmentation LLM provider (OpenAI, Mistral...)
-SEGMENTATION__LLM__API_KEY: "SECRET"
-```
-
----
-
-### `app`
-Controls runtime behaviour.
-
-| Key | Values | Effect |
-|---|---|---|
-| `mode` | `development`, `production`, `staging`, `test` | Informational; influences log verbosity expectations |
-| `log_level` | `debug`, `info`, `warning`, `error` | Controls how much is logged to stdout |
-
----
-
-### `ner`
-Used by `geo-extracting` and `entity-extracting` tasks.
-
-| Key | Values / Default | Effect |
-|---|---|---|
-| `language` | `nl` / `de` / `en` | Default language when no other language is detected |
-| `method` | `composite` *(default)*, `huggingface`, `flair`, `spacy`, `regex`, `title` | Extraction backend. `composite` runs HuggingFace + Flair and merges results. `title` is LLM-based and only used internally for the title field |
-| `labels` | List of label strings | **Geo-extracting only**: entities whose label is not in this list are dropped before geocoding. Entity-extracting ignores this filter |
-| `post_process` | `true` / `false` | When `true`, overlapping entities with the same label are deduplicated (highest confidence wins). Disable only for debugging |
-| `enable_refinement` | `true` / `false` | When `true`, generic labels (`DATE`, `LOCATION`) are passed through the refinement model ([lblod/longformer-classifier-refinement-abb](https://huggingface.co/lblod/longformer-classifier-refinement-abb)) which classifies them into specific subtypes: `publication_date`, `session_date`, `entry_date`, `expiry_date`, `context_date`, `validity_period`, `impact_location`, `context_location`, `context_period`. The model can also classify a span as `legal_date`, but this label is intentionally filtered out and not processed further. **If disabled, only the raw `DATE` / `LOCATION` labels are available for predicate mapping** |
-| `label_to_predicate` | Dict of `"LABEL": "prefix:predicate"` | Maps a (refined) label to an RDF predicate stored in the triplestore. **Labels with an empty or missing mapping are silently skipped** — no annotation is stored for them. Example: `"PUBLICATION_DATE": "eli:date_publication"` |
-
-**Interaction between `enable_refinement` and `label_to_predicate`**: if refinement is on, map the refined labels (e.g. `PUBLICATION_DATE`). If refinement is off, map the raw labels (e.g. `DATE`). Mapping `DATE` while refinement is on will never match because `DATE` gets replaced by a refined subtype.
-
----
-
-### `translation`
-Used by the `translating` task.
-
-| Key | Values / Default | Effect |
-|---|---|---|
-| `target_language` | `en`, `nl`, `de`, `fr`, `es` | Language to translate into |
-| `provider` | `langchain` *(default)*, `huggingface`, `etranslation` | Which translation backend to use. `huggingface` runs locally (Helsinki-NLP OPUS-MT, no credentials needed). `etranslation` uses the EU Commission API (requires credentials). `langchain` delegates to a configurable LLM backend (e.g. Ollama, OpenAI, Mistral) |
-
-**`etranslation` sub-keys** (only relevant when `provider` is `etranslation`):
+### `segmentation.llm`
 
 | Key | Default | Effect |
 |---|---|---|
-| `bearer_token` / `username` + `password` | `null` | Authentication — at least one must be set |
-| `callback_url` | `null` | Public URL the EU API will POST results to — must be reachable from the internet |
-| `max_text_length` | `4000` | Characters per chunk sent to the API. Longer texts are split automatically |
-| `callback_wait_timeout` | `180` | Seconds to wait for a callback before failing |
-| `domain` | `GEN` | Translation domain hint for the EU API |
+| `provider` | `ollama` | LangChain provider name: `mistralai`, `ollama` (the providers whose packages are in `requirements.txt`) |
+| `model_name` | `mistral-nemo` | Model identifier as understood by the provider |
+| `api_key` | `null` | API key, required for remote providers; set it via `SEGMENTATION__LLM__API_KEY` |
+| `base_url` | `null` | Custom endpoint, required for Ollama and self-hosted models |
+| `temperature` | `0.0` | Lower = more deterministic segmentation |
+| `max_retries` | `3` | Attempts per LLM call on failure |
+| `retry_delay` | `15.0` | Seconds between retries |
 
----
+### `segmentation.shape`
 
-### `geocoding`
-Used by `geo-extracting`.
+What to segment. Relative paths are resolved against the project root.
 
 | Key | Effect |
 |---|---|
-| `nominatim_base_url` | URL of the Nominatim instance (e.g. `http://nominatim:8080` when using the bundled container) |
+| `shape_path` | SHACL shape (Turtle) describing what to segment |
+| `node_shapes` | Node shapes of the shape to segment; empty for all |
+| `example_paths` | Example HTML documents whose element ids match the shape's usage notes; they become the examples in the prompt |
+| `ontologies` | Vocabularies whose `rdfs:subClassOf` hierarchy decides which shapes an existing entity can play |
+| `usage_note_predicate` | Property of the shape's node and property shapes holding the id of their example element |
+| `text_predicate` | Property of an input resource holding the text to segment |
+| `same_as_predicate` | Property whose (almost) equal value identifies the same entity in the triplestore, e.g. a title |
+| `same_as_class` | Segmented entities of this class are linked to the same entity in the triplestore (an original); `null` to link nothing |
 
----
-
-### `llm`
-Used by `entity-extracting` (title extraction) and `model-annotating` (SDG classification).
-
-| Key | Default | Effect |
-|---|---|---|
-| `model_name` | `gpt-4o-mini` | OpenAI-compatible model name |
-| `api_key` | `null` | Required for external providers (OpenAI, Mistral, …) |
-| `temperature` | `0.1` | Lower = more deterministic output |
-
----
-
-### `segmentation`
-Used by the `segmenting` task. Settings are split between top-level keys and the nested `llm` block.
-
-| Key | Default | Effect |
-|---|---|---|
-| `max_new_tokens` | `14000` | Generation budget for GemmaSegmentor; not used by LLMSegmentor |
-| `max_gap` | `5` | Maximum character gap allowed when projecting segments back to the source expression |
-| `llm.provider` | `ollama` | LangChain provider name (`ollama`, `openai`, `mistral`, …) |
-| `llm.model_name` | `mistral-nemo` | Model name. Set to `lblod/decide-marked-segmentation` to use the local GemmaSegmentor instead |
-| `llm.api_key` | `null` | API key — required for external providers (OpenAI, Mistral, …) |
-| `llm.base_url` | `null` | Custom endpoint URL — required for Ollama and self-hosted models |
-| `llm.temperature` | `0.0` | Lower = more deterministic segmentation |
-
----
-
-### LLM Configuration: Translation & Segmentation
-
-Both **translation** (via `langchain` provider) and **segmentation** delegate to an LLM backend. The system is designed to work with any LangChain-supported provider - local (Ollama) or remote (OpenAI, Mistral, etc.) - with no code changes required. Switch providers by updating `config.json`.
-
-#### Shared `llm` sub-keys
-
-| Key | Default | Effect                                                                                                         |
-|---|---|----------------------------------------------------------------------------------------------------------------|
-| `provider` | `ollama` | LangChain provider name: `ollama`, `openai`, `mistralai`, `anthropic`, …                                       |
-| `model_name` | varies | Model identifier as understood by the provider                                                                 |
-| `api_key` | `null` | API key - required for remote providers. **Never commit to config.json**; use the environment variable instead |
-| `base_url` | `null` | Custom endpoint - required for Ollama/self-hosted; optional for providers with a default endpoint              |
-| `temperature` | `0.0` / `0.1` | Generation temperature - lower = more deterministic                                                            |
-| `max_retries` | `3` | Retry attempts on LLM call failure                                                                             |
-| `retry_delay` | `15.0` | Seconds between retries                                                                                        |
-
-#### Translation (`translation.langchain`)
-
-Set `translation.provider` to `"langchain"` to enable LLM-based translation. Additional keys:
-
-| Key | Default | Effect |
-|---|---|---|
-| `max_text_length` | `6000` | Maximum characters per translation chunk |
-
-Add the `translation.langchain` block to `config.json`:
-
-```json
-"translation": {
-  "target_language": "en",
-  "provider": "langchain",
-  "langchain": {
-    "provider": "ollama",
-    "model_name": "mistral-nemo",
-    "base_url": "http://host.docker.internal:11434",
-    "temperature": 0.1,
-    "max_text_length": 6000
-  }
-}
-```
-
-**Example — Ollama (local):**
-```json
-"langchain": {
-  "provider": "ollama",
-  "model_name": "mistral-nemo",
-  "base_url": "http://host.docker.internal:11434",
-  "temperature": 0.1
-}
-```
-
-**Example — OpenAI:**
-```json
-"langchain": {
-  "provider": "openai",
-  "model_name": "gpt-4o-mini",
-  "temperature": 0.1
-}
-```
-
-**Example — Mistral AI:**
-```json
-"langchain": {
-  "provider": "mistralai",
-  "model_name": "mistral-medium-3-5",
-  "temperature": 0.1
-}
-```
-
-#### Segmentation (`segmentation.llm`)
-
-The segmentation task uses the LLM to tag document sections. The `segmentation.llm` block controls which model to use.
-
-**Example - Ollama (local):**
-```json
-"segmentation": {
-  "llm": {
-    "provider": "ollama",
-    "model_name": "mistral-nemo",
-    "base_url": "http://ollama:11434",
-    "temperature": 0.0
-  },
-  "max_new_tokens": 20000,
-  "max_gap": 5
-}
-```
-
-**Example - OpenAI:**
-```json
-"segmentation": {
-  "llm": {
-    "provider": "openai",
-    "model_name": "gpt-4.1",
-    "temperature": 0.0
-  },
-  "max_new_tokens": 20000,
-  "max_gap": 5
-}
-```
-
-**Example - Mistral AI:**
-```json
-"segmentation": {
-  "llm": {
-    "provider": "mistralai",
-    "model_name": "mistral-medium-3.5",
-    "base_url": "https://api.mistral.ai/v1",
-    "temperature": 0.1
-  },
-  "max_new_tokens": 20000,
-  "max_gap": 5
-}
-```
-
-**GemmaSegmentor (legacy specialized model):** Set `llm.model_name` to `"lblod/decide-marked-segmentation"` to use the built-in transformers-based segmentor instead of the generic LLM approach:
-
-```json
-"segmentation": {
-  "llm": {
-    "model_name": "lblod/decide-marked-segmentation",
-    "temperature": 0.1
-  },
-  "max_new_tokens": 4000,
-  "max_gap": 5
-}
-```
-
-#### API Keys via Environment Variables
-
-Never store API keys in `config.json`. Use environment variables with the nested delimiter `__`:
+## Tests
 
 ```bash
-# Translation langchain API key
-TRANSLATION__LANGCHAIN__API_KEY="sk-..."
-
-# Segmentation LLM API key
-SEGMENTATION__LLM__API_KEY="sk-..."
+docker compose exec shape-ner-service sh -c 'cd /app && uv run --with pytest pytest'
 ```
 
-See `docker-compose.yml` for the full list of supported variables.
-
----
-
-### `ml_training`
-Used by the `classifier-training` task only; not needed for normal inference.
-
-| Key | Default | Effect |
-|---|---|---|
-| `transformer` | `distilbert/distilbert-base-uncased` | Base model to fine-tune |
-| `learning_rate` / `epochs` / `weight_decay` | standard defaults | Standard training hyperparameters |
-| `huggingface_token` / `huggingface_output_model_id` | `null` | Set to push the trained model to HuggingFace Hub after training |
-
----
-
-Ensure the required Docker network exists (see `docker-compose.yaml`).
-
-## How It Works
-
-1. **Delta notification** → `POST /delta` receives task creation events
-2. **Task execution** → Task type determines processing:
-   - `geo-extracting`: Extract locations (filtered by `config.ner.labels`), geocode via Nominatim
-   - `entity-extracting`: Extract legal entities (DATE, LOCATION, LEGAL_GROUND, ADMINISTRATIVE_BODY, MANDATARY) + title
-   - `translating`: Translate text using configured provider
-   - `model-annotating`: LLM classification (SDG codes)
-   - `model-batch-annotating`: Batch process multiple decisions for model annotation
-   - `classifier-training`: Train classification models
-   - `segmenting`: Segment documents using LLM-based segmentation
-3. **Processing** → Apply refinement, geocoding, translation as needed. Overlapping entities are filtered (when `post_process` enabled)
-4. **Storage** → Annotations stored in SPARQL triplestore (AI graph) with full provenance
+The segmentation test cases replay recorded LLM answers, so they need neither the LLM nor the triplestore. To add a
+case, see [tests/cases/README.md](tests/cases/README.md).
 
 ## Deployment
 
-**Network**: Ensure `app-decide_default` network exists or update network name in `docker-compose.yaml`
-
-**Environment variables**:
-- `MU_SPARQL_ENDPOINT`: SPARQL endpoint URL
-
-**Ports**: Service runs on port 80 internally. Map to host port in `docker-compose.yaml` (default: `8082:80`). For production, expose via dispatcher instead of opening ports directly.
-
-**Volumes**:
-- `config.json` mounted read-only
-- `nominatim-data` for Nominatim database persistence
-
-**eTranslation callbacks**: Use dispatcher to route `/etranslation/*` to the service. Set `callback_url` in `config.json` to dispatcher's public URL. See [fastapi_callback_setup.md](fastapi_callback_setup.md) for details.
-
-## Nominatim
-
-Nominatim is included in docker-compose. First startup can take longer than usual to build the database (one-time setup, persisted via volume).
+- **Network**: ensure the `app-decide_default` network exists, or update the network name in `docker-compose.yaml`.
+- **Ports**: the service runs on port 80 internally. For production, expose it via the dispatcher instead of opening
+  ports directly.
+- **Volumes**: `config.json` is mounted read-only at `/config/config.json`.

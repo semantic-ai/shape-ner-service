@@ -1,1 +1,1 @@
-from .segmentation import SegmentationTask, SEGMENTATION_COMPONENT
+from .entity_extraction import EntityExtractionTask, EXTRACTOR_COMPONENT

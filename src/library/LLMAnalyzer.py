@@ -1,15 +1,13 @@
 import json
 import re
 import time
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional
 
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import SystemMessage, HumanMessage
 from ..retry import retry_call
 import json_repair
 from helpers import logger
-
-MARKER_RE = re.compile(r'^L(\d+)\| ?')
 
 
 class LLMAnalyzer:
@@ -26,31 +24,29 @@ class LLMAnalyzer:
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
         temperature: float = 0.0,
-        json_mode: bool = True,
         max_retries: int = 3,
         retry_delay: float = 15.0,
-        task: Optional[Any] = None,
-        endpoint: Optional[str] = None,
     ):
         self.model_name = model_name
         self._provider = provider
         self._max_retries = max_retries
         self._retry_delay = retry_delay
-        self._task = task
+        # Task the calls are recorded on (see record_llm_call), set by the caller
+        self._task = None
         # Last LangChain response, e.g. for its usage_metadata (token counts)
         self.last_response = None
-        self._endpoint = endpoint or base_url or "local"
+        self._endpoint = base_url or "local"
 
         kwargs: Dict[str, Any] = {"temperature": temperature}
         if api_key:
             kwargs["api_key"] = api_key
         if base_url:
             kwargs["base_url"] = base_url
-        if json_mode:
-            if provider == "ollama":
-                kwargs["format"] = "json"
-            elif provider in {"mistralai", "mistral"}:
-                kwargs["response_format"] = {"type": "json_object"}
+        # JSON mode
+        if provider == "ollama":
+            kwargs["format"] = "json"
+        elif provider in {"mistralai", "mistral"}:
+            kwargs["response_format"] = {"type": "json_object"}
 
         self._chat_model = init_chat_model(
             f"{provider}:{model_name}",
@@ -59,98 +55,6 @@ class LLMAnalyzer:
             max_retries=0,
         )
 
-    def preprocess(self, text: str, min_width: int = 4) -> Tuple[str, List[str], int]:
-        """
-        numbered_text : LNNNN|-prefixed, '\\n'-joined  -> send this to the LLM
-        lines         : exact original pieces (split on '\\n') -> keep for reconstruction
-        width         : zero-pad width used
-        Contract:  '\\n'.join(lines) == text   (byte-exact, always)
-        """
-        lines = text.split('\n')
-        width = max(min_width, len(str(len(lines))))
-        numbered = [
-            f"L{i:0{width}d}| {line.rstrip(chr(13))}"
-            for i, line in enumerate(lines, start=1)
-        ]
-        return '\n'.join(numbered), lines, width
-
-    def _clean_tag(self, t: str) -> str:
-        return t.strip().strip("<>").strip()
-
-    def _clamp(self, idx, n):
-        return min(max(idx, 0), n - 1)
-
-    def _locate(self, lines, i, needle, radius=8):
-        # 1) exact on the stated line
-        if 0 <= i < len(lines) and needle in lines[i]:
-            return i
-        # 2) nearby lines (LLM miscounts by a few lines, esp. around page breaks)
-        for d in range(1, radius + 1):
-            for j in (i - d, i + d):
-                if 0 <= j < len(lines) and needle in lines[j]:
-                    return j
-        # 3) globally unique occurrence anywhere
-        hits = [j for j, ln in enumerate(lines) if needle in ln]
-        return hits[0] if len(hits) == 1 else None  # None = ambiguous or absent
-
-    def reconstruct(self, lines, spans):
-        n = len(lines)
-        if n == 0:
-            return ""
-        opens = {i: [] for i in range(n)}
-        closes = {i: [] for i in range(n)}
-        sublines = []  # (order, stated_line_idx, tag, needle) — line may drift
-
-        for order, s in enumerate(spans):
-            if "start_line" not in s or "end_line" not in s or "tag" not in s:
-                logger.warning("Skipping malformed span (missing keys): %r", s)
-                continue
-            a, b, tag = s['start_line'] - 1, s['end_line'] - 1, self._clean_tag(s['tag'])
-            if s.get('text') is not None:
-                if a != b:
-                    logger.warning("Sub-line span %r has start_line != end_line (%d..%d); "
-                                   "using start_line", s['text'], a + 1, b + 1)
-                sublines.append((order, a, tag, s['text']))
-            else:
-                ca, cb = self._clamp(a, n), self._clamp(b, n)
-                if (ca, cb) != (a, b):
-                    logger.warning("Block span <%s> line range %d..%d out of bounds (1..%d); "
-                                   "clamped to %d..%d", tag, a + 1, b + 1, n, ca + 1, cb + 1)
-                if cb < ca:
-                    ca, cb = cb, ca
-                opens[ca].append((order, cb - ca, tag))
-                closes[cb].append((order, cb - ca, tag))
-
-        # Mutable per-line buffer that sub-line tags are written into.
-        out_lines = list(lines)
-
-        # Pass 1: place sub-line tags, tolerating line-number drift.
-        for order, i, tag, needle in sorted(sublines, key=lambda x: x[0]):
-            j = self._locate(lines, i, needle)
-            if j is None:
-                logger.warning("Skipping unplaceable sub-line tag %r (stated line %d)",
-                               needle, i + 1)
-                continue
-            if j != i:
-                logger.info("Relocated sub-line %r from line %d to %d", needle, i + 1, j + 1)
-            body = out_lines[j]
-            idx = body.find(needle)
-            if idx == -1:
-                # Present in the original line but a prior tag on the same line
-                # overlapped/consumed it. Degrade gracefully.
-                logger.warning("Sub-line tag %r no longer findable on line %d after "
-                               "prior tagging; skipping", needle, j + 1)
-                continue
-            out_lines[j] = body[:idx] + f'<{tag}>' + needle + f'</{tag}>' + body[idx + len(needle):]
-
-        # Pass 2: wrap each (possibly sub-line-tagged) line with line-level tags.
-        out = []
-        for i in range(n):
-            open_str = ''.join(f'<{t}>' for _, _, t in sorted(opens[i], key=lambda x: (-x[1], x[0])))
-            close_str = ''.join(f'</{t}>' for _, _, t in sorted(closes[i], key=lambda x: (x[1], -x[0])))
-            out.append(open_str + out_lines[i] + close_str)
-        return '\n'.join(out)
-
     def analyze_single_entry(
         self,
         text: str,
@@ -158,16 +62,8 @@ class LLMAnalyzer:
         user_prompt_template: str,
         expected_schema: Dict[str, Any],
         text_limit: int = 8000,
-        preprocess: bool = False,
-        postprocess: bool = False,
     ) -> Dict[str, Any]:
-
-        if preprocess:
-            numbered_text, lines, _ = self.preprocess(text)
-            limited_text = numbered_text[:text_limit]
-            user_prompt = user_prompt_template.format(text=limited_text, numbered_text=limited_text)
-        else:
-            user_prompt = user_prompt_template.format(text=text[:text_limit])
+        user_prompt = user_prompt_template.format(text=text[:text_limit])
 
         messages = [
             SystemMessage(content=system_prompt),
@@ -185,10 +81,6 @@ class LLMAnalyzer:
 
             self.last_response = response
             result = self._parse_json(response.content)
-
-            if postprocess and 'spans' in result:
-                result['tagged_text'] = self.reconstruct(lines, result.get('spans', []))
-
             return self._validate_result(result, expected_schema)
 
         except Exception as e:

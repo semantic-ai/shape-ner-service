@@ -19,7 +19,6 @@ services:
         aliases:
           - shape-ner-service
     environment:
-      SEGMENTATION__LLM__API_KEY: ${SEGMENTATION__LLM__API_KEY} # API key for the segmentation LLM provider (OpenAI, Mistral...), set in .env
       MODE: "development"
       TARGET_GRAPH: http://mu.semte.ch/graphs/harvesting
       JOB_GRAPH: http://mu.semte.ch/graphs/harvesting

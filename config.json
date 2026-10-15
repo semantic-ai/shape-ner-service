@@ -1,37 +1,4 @@
 {
-  "app": {
-    "mode": "development",
-    "log_level": "debug"
-  },
-  "ner": {
-    "language": "nl",
-    "method": "composite",
-    "post_process": true,
-    "validate_persons": true,
-    "min_confidence": null,
-    "labels": ["CITY", "DOMAIN", "HOUSENUMBERS", "INTERSECTION", "POSTCODE", "PROVINCE", "ROAD", "STREET"],
-    "enable_refinement": true
-  },
-  "translation": {
-    "target_language": "en",
-    "provider": "langchain",
-    "etranslation": {
-      "base_url": "https://language-tools.ec.europa.eu/etranslation/api",
-      "username": null,
-      "domain": "GEN",
-      "timeout_seconds": 60,
-      "callback_wait_timeout": 180,
-      "max_text_length": 4000,
-      "callback_url": null
-    },
-    "langchain": {
-      "provider": "ollama",
-      "model_name": "mistral-nemo",
-      "base_url": "http://host.docker.internal:11434",
-      "temperature": 0.1,
-      "max_text_length": 6000
-    }
-    },
   "segmentation": {
     "llm": {
       "provider": "mistralai",
@@ -45,14 +12,17 @@
         "https://data.vlaanderen.be/shacl/besluit-publicatie#BesluitShape",
         "https://data.vlaanderen.be/shacl/besluit-publicatie#ArtikelShape"
       ],
-      "example_paths": ["shapes/notulen-example.html"],
-      "ontologies": ["https://data.vlaanderen.be/ns/besluit", "http://data.europa.eu/eli/ontology"],
+      "example_paths": [
+        "shapes/notulen-example.html"
+      ],
+      "ontologies": [
+        "https://data.vlaanderen.be/ns/besluit",
+        "http://data.europa.eu/eli/ontology"
+      ],
       "usage_note_predicate": "http://lblod.data.gift/vocabularies/besluit/usageNote",
       "text_predicate": "https://data.europarl.europa.eu/def/epvoc#expressionContent",
       "same_as_predicate": "http://data.europa.eu/eli/ontology#title",
       "same_as_class": "http://data.vlaanderen.be/ns/besluit#Besluit"
-    },
-    "max_new_tokens": 20000,
-    "max_gap": 5
+    }
   }
 }
