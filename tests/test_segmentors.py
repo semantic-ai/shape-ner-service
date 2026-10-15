@@ -3,7 +3,7 @@ Tests of LLMSegmentorWithShape itself, without the LLM: its configuration, the p
 examples, and finding the expressions related to a task. What a segmentation must produce is tested per case in
 tests/test_segmentation_cases.py.
 
-The shape, examples and vocabularies come from segmentation.shape in config.json (shape files in shapes/), so run it
+The shape, examples and vocabularies come from segmentation.targets in config.json (shape files in shapes/), so run it
 inside the service container:
     docker compose exec shape-ner-service sh -c 'cd /app && uv run --with pytest pytest'
 To debug, start it under debugpy and attach with "Attach to pytest (Docker)" in .vscode/launch.json:
@@ -15,7 +15,7 @@ from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import PROV, RDF, SH
 
 from src.config import get_config
-from tests.support import case_folders, load_case, temporary_task
+from tests.support import case_folders, default_target, load_case, temporary_task
 
 CASES = case_folders()
 BESLUIT = Namespace("http://data.vlaanderen.be/ns/besluit#")
@@ -23,7 +23,7 @@ ELI = Namespace("http://data.europa.eu/eli/ontology#")
 
 
 def test_shape_input_comes_from_config(segmentor):
-    shape_config = get_config().segmentation.shape
+    shape_config = get_config().segmentation.targets[default_target()]
     assert [definition["uri"] for definition in segmentor.definitions] == shape_config.node_shapes
     # The vocabulary-specific settings belong to the shape, not to the segmentor
     assert str(segmentor.usage_note_predicate) == shape_config.usage_note_predicate
@@ -39,13 +39,13 @@ def test_shape_input_comes_from_config(segmentor):
 def test_prompt_has_the_examples_of_the_usage_notes(segmentor):
     # A property's usage note is the id of its example in the example HTML. A value only in a content attribute (other
     # than a string) or in a resource attribute is hidden metadata: it is not in the visible text
-    examples = [BeautifulSoup(segmentor._resolve(path).read_text(encoding="utf-8"), "html.parser")
-                for path in get_config().segmentation.shape.example_paths]
+    example = BeautifulSoup(
+        segmentor._resolve(get_config().segmentation.targets[default_target()].html_example_path)
+        .read_text(encoding="utf-8"), "html.parser")
     checked = 0
     for definition in segmentor.definitions:
         for prop in definition["properties"]:
-            element = next((e for soup in examples for e in [soup.find(id=prop["usage_note"])] if e is not None), None) \
-                if prop["usage_note"] else None
+            element = example.find(id=prop["usage_note"]) if prop["usage_note"] else None
             if element is None:
                 continue
             visible = " ".join(element.get_text(" ").split())
@@ -167,3 +167,22 @@ def test_related_inputs_come_from_the_task(segmentor, folder):
     if not related:
         pytest.skip(f"{case['input']} is not in the triplestore")
     assert related == [case["input"]]
+
+
+def test_a_target_without_tuning_divides_documents_by_the_shape_only():
+    # The rules on numbered sub-parts and headings belong to the decisions target: without them, the prompt has no
+    # such rules and occurrences are not merged
+    from src.config import get_config
+    from src.library.segmentors import LLMSegmentorWithShape
+    target = get_config().segmentation.targets[default_target()].model_copy(
+        update={"prompt_rules": [], "numbered_parts": False})
+    s = LLMSegmentorWithShape(target, provider="ollama", model_name="replay")
+    assert "<TARGET RULES>" not in s.system_prompt
+    assert "numbered sub-part" not in s.system_prompt
+    # The heading rule is for every target
+    assert "\n    - A heading is a line of at most 4 words that ends with a colon" in s.system_prompt
+    segments = [{"uri": "http://example.org/1", "shape": "S", "existing": False, "start": 0, "end": 9,
+                 "text": "Artikel 1", "properties": []},
+                {"uri": "http://example.org/1.1", "shape": "S", "existing": False, "start": 10, "end": 21,
+                 "text": "Artikel 1.1", "properties": []}]
+    assert s._merge_sub_parts(segments, "Artikel 1\nArtikel 1.1") == segments

@@ -53,6 +53,10 @@
       and continuation (also across page breaks), up to where the next part of
       the document starts, such as the next occurrence. Do not stop after the
       first sentence or line.
+    - A heading is a line of at most 4 words that ends with a colon, e.g.
+      "Decision:"; a longer line ending with a colon introduces what follows. A
+      property's value never starts or ends with a heading: a heading between
+      two parts belongs to no property.
     - Within one structure, a numbered sub-part (such as 1.1 or 2.1 under 1 or
       2) is part of the occurrence it belongs to, not a separate occurrence of
       that structure: the occurrence includes its sub-parts and ends where the

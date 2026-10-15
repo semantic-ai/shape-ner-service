@@ -6,6 +6,7 @@
 @prefix oa: <http://www.w3.org/ns/oa#> .
 
 [] a test:Case ;
+    test:target "uittreksel" ;
     test:original <https://lblod.zottegem.be/LBLODWeb/id/besluiten/50af1c5e78a1407699733aaf1df121d2-70589> ;
     test:count [ test:class besluit:Besluit ; test:number 1 ] ,
                [ test:class besluit:Artikel ; test:number 6 ] .

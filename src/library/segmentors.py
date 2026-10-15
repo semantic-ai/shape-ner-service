@@ -2,6 +2,7 @@ import re
 import json
 import uuid
 import difflib
+import textwrap
 import unicodedata
 from pathlib import Path
 from string import Template
@@ -99,13 +100,7 @@ class LLMSegmentorWithShape:
       and continuation (also across page breaks), up to where the next part of
       the document starts, such as the next occurrence. Do not stop after the
       first sentence or line.
-    - Within one structure, a numbered sub-part (such as 1.1 or 2.1 under 1 or
-      2) is part of the occurrence it belongs to, not a separate occurrence of
-      that structure: the occurrence includes its sub-parts and ends where the
-      next part at the same level starts (2 after 1).
-    - One occurrence holds all of its properties: never split it into several
-      occurrences of the same structure, e.g. at a heading between two of its
-      properties.
+<TARGET RULES>
     - Occurrences of different structures are always returned separately, also
       when one contains the other.
     - Copy everything between the start and the end of the text, including page
@@ -174,6 +169,9 @@ class LLMSegmentorWithShape:
     # Settings; a subclass can override them
     TEXT_LIMIT = 28000
     MAX_ATTEMPTS = 3
+    # Placeholder in SYSTEM_PROMPT for the rules that depend on the target, and the width they are wrapped at
+    TARGET_RULES = "<TARGET RULES>\n"
+    RULE_WIDTH = 80
     # {class_name} is the lowercased local name of the shape's sh:targetClass, e.g. "artikel"
     URI_TEMPLATE = "http://data.lblod.info/id/{class_name}/{uuid}"
     EXAMPLE_MAX_LENGTH = 400
@@ -183,28 +181,31 @@ class LLMSegmentorWithShape:
     LANGUAGE: Optional[str] = None
     # Text the LLM may leave out between two lines it copied, e.g. a page footer
     MAX_SKIPPED_CHARS = 300
-    # Minimal similarity of the titles of a segmented entity and an original (shape config: same_as_predicate)
+    # Minimal similarity of the titles of a segmented entity and an original (target: same_as_predicate)
     TITLE_SIMILARITY = 0.9
-    # Relative paths in the shape config are resolved against the project root
+    # Relative paths in the target are resolved against the project root
     PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-    def __init__(self, api_key: str = None, base_url: str = None, model_name: str = "mistral-nemo", temperature: float = 0.0, provider: str = "ollama", max_retries: int = 3, retry_delay: float = 15.0):
+    def __init__(self, target, api_key: str = None, base_url: str = None, model_name: str = "mistral-nemo", temperature: float = 0.0, provider: str = "ollama", max_retries: int = 3, retry_delay: float = 15.0):
+        """target: what to segment and how, a TargetConfig of the app config (segmentation.targets)."""
         self.model_name = model_name
 
-        # Shape, node shapes, examples, vocabularies and the vocabulary-specific settings come from the app config
-        # (segmentation.shape)
-        shape_config = self._load_shape_config()
-        self.usage_note_predicate = URIRef(shape_config.usage_note_predicate)
-        self.text_predicate = URIRef(shape_config.text_predicate)
-        self.same_as_predicate = URIRef(shape_config.same_as_predicate)
-        self.same_as_class = shape_config.same_as_class
-        self.shape_graph = Graph().parse(self._resolve(shape_config.shape_path), format="turtle")
+        # Shape, node shapes, examples, vocabularies and the vocabulary-specific settings come from the target
+        self.usage_note_predicate = URIRef(target.usage_note_predicate) if target.usage_note_predicate else None
+        self.text_predicate = URIRef(target.text_predicate)
+        self.same_as_predicate = URIRef(target.same_as_predicate) if target.same_as_predicate else None
+        self.same_as_class = target.same_as_class
+        # Tuned to the target's documents: how they are divided (see _merge_sub_parts)
+        self.prompt_rules = target.prompt_rules
+        self.numbered_parts = target.numbered_parts
+        self.shape_graph = Graph().parse(self._resolve(target.shape_path), format="turtle")
         # rdfs:subClassOf hierarchy, e.g. besluit:Besluit -> eli:LegalExpression -> eli:Expression
-        self.ontology = self._load_ontologies(shape_config.ontologies)
-        self.definitions = self._load_shape_definitions(shape_config.node_shapes)
+        self.ontology = self._load_ontologies(target.ontologies)
+        self.definitions = self._load_shape_definitions(target.node_shapes)
         if not self.definitions:
             raise ValueError("No sh:NodeShape found in the given SHACL shape.")
-        self._load_examples([self._resolve(path).read_text(encoding="utf-8") for path in shape_config.example_paths])
+        self._load_examples(self._resolve(target.html_example_path).read_text(encoding="utf-8")
+                            if target.html_example_path else None)
 
         # Key used in the prompt -> {'shape': node shape URI, 'path': property path URI or None}
         self.key_lookup: Dict[str, Dict[str, Optional[str]]] = {}
@@ -218,7 +219,7 @@ class LLMSegmentorWithShape:
                 self.key_lookup[prop["key"]] = {"shape": definition["uri"], "path": prop["path"]}
                 self.properties_by_key[prop["key"]] = prop
 
-        self.system_prompt = self.SYSTEM_PROMPT + self._render_shape_definitions()
+        self.system_prompt = self._render_system_prompt() + self._render_shape_definitions()
 
         self.analyzer = LLMAnalyzer(
             provider=provider,
@@ -230,9 +231,27 @@ class LLMSegmentorWithShape:
             retry_delay=retry_delay,
         )
 
-    def _load_shape_config(self):
-        from ..config import get_config
-        return get_config().segmentation.shape
+    # What the prompt calls a heading, as _is_heading_line decides it
+    HEADING_RULE = ("A heading is a line of at most {max_words} words that ends with a colon, e.g. \"Decision:\"; a "
+                    "longer line ending with a colon introduces what follows. A property's value never starts or ends "
+                    "with a heading: a heading between two parts belongs to no property.")
+
+    # For a target with numbered_parts, what _merge_sub_parts repairs when the LLM does not follow it
+    NUMBERED_PARTS_RULE = ("Within one structure, a numbered sub-part (such as 1.1 or 2.1 under 1 or 2) is part of the "
+                           "occurrence it belongs to, not a separate occurrence of that structure: the occurrence "
+                           "includes its sub-parts and ends where the next part at the same level starts (2 after 1).")
+
+    def _render_system_prompt(self) -> str:
+        """
+        The system prompt with, among the rules on copying text, the heading rule, the numbered parts rule (for a target
+        with numbered_parts) and the target's own rules.
+        """
+        rules = [self.HEADING_RULE.format(max_words=self.HEADING_MAX_WORDS),
+                 *([self.NUMBERED_PARTS_RULE] if self.numbered_parts else []),
+                 *self.prompt_rules]
+        rules = "".join(textwrap.fill(rule, width=self.RULE_WIDTH, initial_indent="    - ", subsequent_indent="      ")
+                        + "\n" for rule in rules)
+        return self.SYSTEM_PROMPT.replace(self.TARGET_RULES, rules)
 
     def _resolve(self, path: str) -> Path:
         return Path(path) if Path(path).is_absolute() else self.PROJECT_ROOT / path
@@ -273,6 +292,10 @@ class LLMSegmentorWithShape:
     def _value(self, subject, predicate) -> Optional[str]:
         value = self.shape_graph.value(subject, predicate)
         return str(value) if value is not None else None
+
+    def _usage_note(self, node) -> Optional[str]:
+        """Id of the node's example element in the example documents; none without a usage_note_predicate."""
+        return self._value(node, self.usage_note_predicate) if self.usage_note_predicate else None
 
     def _local_name(self, node, fallback_uri: str) -> str:
         """Name of a shape: its sh:name (or rdfs:label), otherwise the last segment of fallback_uri."""
@@ -334,7 +357,7 @@ class LLMSegmentorWithShape:
                     "min_count": self._value(prop_node, SH.minCount),
                     "max_count": self._value(prop_node, SH.maxCount),
                     "order": g.value(prop_node, SH.order),
-                    "usage_note": self._value(prop_node, self.usage_note_predicate),
+                    "usage_note": self._usage_note(prop_node),
                     "literal": self._expects_literal(prop_node),
                 })
             properties.sort(key=lambda p: (p["order"] is None, float(p["order"] or 0), p["name"]))
@@ -347,22 +370,20 @@ class LLMSegmentorWithShape:
                 "target_class": target_class,
                 "name": self._local_name(shape_node, target_class or str(shape_node)),
                 "description": self._value(shape_node, SH.description) or self._value(shape_node, RDFS.comment),
-                "usage_note": self._value(shape_node, self.usage_note_predicate),
+                "usage_note": self._usage_note(shape_node),
                 "properties": properties,
             })
         return definitions
 
     # Examples: the shape's usage notes refer to element ids in example HTML documents
-    def _load_examples(self, examples: str | List[str] | None) -> None:
+    def _load_examples(self, html: Optional[str]) -> None:
         """Attach an example to each node and property shape whose usage note matches an element id."""
-        if not examples:
+        if not html:
             return
-        soups = [BeautifulSoup(html, "html.parser") for html in ([examples] if isinstance(examples, str) else examples)]
+        soup = BeautifulSoup(html, "html.parser")
 
         def element_for(usage_note: Optional[str]):
-            if not usage_note:
-                return None
-            return next((el for soup in soups for el in [soup.find(id=usage_note)] if el is not None), None)
+            return soup.find(id=usage_note) if usage_note else None
 
         for definition in self.definitions:
             occurrence = element_for(definition["usage_note"])
@@ -472,7 +493,7 @@ class LLMSegmentorWithShape:
             lines.append("")
         return "\n".join(lines)
 
-    # Existing entities related to the document: the inputs of the task (see _is_input; shape config: text_predicate)
+    # Existing entities related to the document: the inputs of the task (see _is_input; target: text_predicate)
     RELATED_ENTITIES_QUERY = """
     PREFIX task: <http://redpencil.data.gift/vocabularies/tasks/>
     SELECT DISTINCT ?input ?type ?content WHERE {
@@ -973,7 +994,8 @@ class LLMSegmentorWithShape:
         return segments
 
     # A heading line: at most this many words, ending with a colon, e.g. "BESLIST:" between a motivation and the
-    # decision itself; a longer line ending with a colon introduces what follows, e.g. "... worden door:"
+    # decision itself; a longer line ending with a colon introduces what follows, e.g. "... worden door:". The
+    # prompt describes headings the same way (HEADING_RULE)
     HEADING_MAX_WORDS = 4
 
     def _is_heading_line(self, line: str) -> bool:
@@ -1014,8 +1036,11 @@ class LLMSegmentorWithShape:
         refer to the parent. So is an occurrence without a number of its own that follows a numbered one: it continues
         it (e.g. the rest of an article after a page break, or a decision's content after its motivation). A parent
         property value that ran to the end of the parent (e.g. its content) is extended as well. The sub-part's
-        relations, and its values of properties the parent has no value of, are the parent's.
+        relations, and its values of properties the parent has no value of, are the parent's. Only for a target with
+        numbered_parts (see NUMBERED_PARTS_RULE).
         """
+        if not self.numbered_parts:
+            return segments
         merged: Dict[str, Dict[str, Any]] = {}  # sub-part URI -> parent
         new = sorted((s for s in segments if not s["existing"]), key=lambda s: s["start"])
         parents: Dict[str, Dict[str, Any]] = {}  # shape -> current parent

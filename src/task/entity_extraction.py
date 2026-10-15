@@ -17,11 +17,12 @@ SHAPE_NER_OPERATION = "http://lblod.data.gift/id/jobs/concept/TaskOperation/shap
 INSERT_BATCH_SIZE = 100
 
 
-def create_segmentor():
-    """The entity extraction's segmentor, LLMSegmentorWithShape, with the segmentation settings from the app config."""
+def create_segmentor(target_name: str):
+    """The entity extraction's segmentor, LLMSegmentorWithShape, for a target of the app config."""
     from ..library.segmentors import LLMSegmentorWithShape
     seg_config = get_config().segmentation
     return LLMSegmentorWithShape(
+        seg_config.targets[target_name],
         provider=seg_config.llm.provider,
         model_name=seg_config.llm.model_name,
         api_key=seg_config.llm.api_key.get_secret_value() if seg_config.llm.api_key else None,
@@ -34,66 +35,77 @@ def create_segmentor():
 
 class EntityExtractionTask(DecisionTask):
     """
-    Extract the entities of each input expression: segment it along the SHACL shape (see LLMSegmentorWithShape) and
-    write the result, the expression with its segments, to the AI graph.
+    Extract the entities of each input of the task: segment it along the SHACL node shapes of its target (see
+    segmentation.targets in the app config, and LLMSegmentorWithShape) and write the result, the input with its
+    segments, to the AI graph.
     """
 
     __task_type__ = SHAPE_NER_OPERATION
 
-    def fetch_eli_expressions(self) -> dict[str, list[str]]:
-        """
-        Retrieve the ELI expressions and their contents from the task's input container.
-
-        Returns:
-            Dictionary containing:
-                - "expression_uris": list containing the expression URIs
-                - "expression_contents": list containing the expression contents
-        """
+    def fetch_inputs(self) -> list[str]:
+        """The resources in the task's input container."""
         q = Template(
-            get_prefixes_for_query("task", "epvoc", "eli") +
+            get_prefixes_for_query("task") +
             f"""
-            SELECT ?expression ?content WHERE {{
+            SELECT DISTINCT ?resource WHERE {{
             GRAPH {sparql_escape_uri(GRAPHS["jobs"])} {{
                 $task task:inputContainer ?container .
             }}
 
             GRAPH {sparql_escape_uri(GRAPHS["data_containers"])} {{
-                ?container task:hasResource ?expression .
-            }}
-
-            GRAPH {sparql_escape_uri(GRAPHS["expressions"])} {{
-                ?expression a eli:Expression ;
-                            epvoc:expressionContent ?content .
+                ?container task:hasResource ?resource .
             }}
             }}
             """
         ).substitute(task=sparql_escape_uri(self.task_uri))
 
         bindings = query(q, sudo=True).get("results", {}).get("bindings", [])
-        if not bindings:
-            logger.warning(
-                f"No expressions found in input container for task {self.task_uri}")
-            return {
-                "expression_uris": [],
-                "expression_contents": []
-            }
+        return [b["resource"]["value"] for b in bindings]
 
-        expression_uris = [b["expression"]["value"] for b in bindings]
-        expression_contents = [b["content"]["value"] for b in bindings]
-
-        return {
-            "expression_uris": expression_uris,
-            "expression_contents": expression_contents
-        }
-
-    def fetch_segmented(self, expression_uris: list[str], segmentor) -> set[str]:
+    def match_targets(self, inputs: list[str]) -> dict[str, str]:
         """
-        The expressions segmented before: the AI graph already holds a value of one of the shape's properties on
-        them, e.g. their parts (eli:has_part).
+        The target of each input: the first target, in the order of the app config, whose target_filter matches it.
+        Inputs no target matches are left out.
+        """
+        targets: dict[str, str] = {}
+        for name, target in get_config().segmentation.targets.items():
+            remaining = [resource for resource in inputs if resource not in targets]
+            if not remaining:
+                break
+            q = (
+                f"{target.prefixes}\n"
+                f"SELECT DISTINCT ?target WHERE {{\n"
+                f"  VALUES ?target {{ {' '.join(sparql_escape_uri(resource) for resource in remaining)} }}\n"
+                f"  {target.target_filter}\n"
+                f"}}"
+            )
+            for b in query(q, sudo=True).get("results", {}).get("bindings", []):
+                targets.setdefault(b["target"]["value"], name)
+        return targets
+
+    def fetch_texts(self, inputs: list[str], text_predicate: str) -> dict[str, str]:
+        """The text to segment of each input: its value of the target's text_predicate, in any graph."""
+        q = f"""
+            SELECT ?resource ?text WHERE {{
+            VALUES ?resource {{ {" ".join(sparql_escape_uri(resource) for resource in inputs)} }}
+            GRAPH ?g {{
+                ?resource {sparql_escape_uri(text_predicate)} ?text .
+            }}
+            }}
+            """
+        texts: dict[str, str] = {}
+        for b in query(q, sudo=True).get("results", {}).get("bindings", []):
+            texts.setdefault(b["resource"]["value"], b["text"]["value"])
+        return texts
+
+    def fetch_segmented(self, inputs: list[str], segmentor) -> set[str]:
+        """
+        The inputs segmented before: the AI graph already holds a value of one of the shape's properties on them,
+        e.g. their parts (eli:has_part).
         """
         paths = sorted({prop["path"] for definition in segmentor.definitions for prop in definition["properties"]})
         existing = get_existing_outputs(
-            expression_uris,
+            inputs,
             f"""
             VALUES ?path {{ {" ".join(sparql_escape_uri(path) for path in paths)} }}
             GRAPH {sparql_escape_uri(GRAPHS["ai"])} {{
@@ -117,15 +129,7 @@ class EntityExtractionTask(DecisionTask):
         logger.info(f"Wrote {len(triples)} triples of the segmentation to {GRAPHS['ai']}")
 
     def create_output_container(self, resource: str) -> str:
-        """
-        Function to create an output data container for the translated ELI expression.
-
-        Args:
-            resource: String containing the URI of the translated ELI expression.
-
-        Returns:
-            String containing the URI of the output data container
-        """
+        """Create an output data container holding the resource; returns its URI."""
         container_id = str(uuid.uuid4())
         container_uri = f"http://data.lblod.info/id/data-container/{container_id}"
 
@@ -151,56 +155,64 @@ class EntityExtractionTask(DecisionTask):
 
     def process(self):
         """
-        Extract the entities of each input expression and write the result to the AI graph; the expression, with its
-        segments, is passed forward.
+        Extract the entities of each input that a target applies to, and write the result to the AI graph; the input,
+        with its segments, is passed forward.
         """
-        eli_expressions = self.fetch_eli_expressions()
-        expression_uris = eli_expressions["expression_uris"]
-        if not expression_uris:
+        inputs = self.fetch_inputs()
+        targets = self.match_targets(inputs)
+        for resource in inputs:
+            if resource not in targets:
+                logger.info(f"No target applies to input {resource} of task {self.task_uri}, skipping it")
+        if not targets:
+            logger.warning(f"No target applies to any input of task {self.task_uri}")
             return
         skipped_empty = 0
 
-        # The shape, examples and vocabularies are loaded once for all expressions
-        segmentor = create_segmentor()
+        for name in dict.fromkeys(targets.values()):
+            resources = [resource for resource in inputs if targets.get(resource) == name]
+            # The shape, examples and vocabularies are loaded once per target
+            segmentor = create_segmentor(name)
+            texts = self.fetch_texts(resources, str(segmentor.text_predicate))
 
-        # Expressions segmented before are passed forward without segmenting them again
-        already_segmented = self.fetch_segmented(expression_uris, segmentor)
-        if already_segmented:
-            logger.info(
-                f"{len(already_segmented)} of {len(expression_uris)} "
-                f"expressions were already segmented, skipping those")
-
-        for expression_uri, text in zip(expression_uris, eli_expressions["expression_contents"]):
-            if expression_uri in already_segmented:
+            # Inputs segmented before are passed forward without segmenting them again
+            already_segmented = self.fetch_segmented(resources, segmentor)
+            if already_segmented:
                 logger.info(
-                    f"Expression {expression_uri} was already "
-                    f"segmented, passing it forward without re-segmenting")
+                    f"{len(already_segmented)} of {len(resources)} "
+                    f"inputs of target {name} were already segmented, skipping those")
+
+            for resource in resources:
+                if resource in already_segmented:
+                    logger.info(
+                        f"Input {resource} was already "
+                        f"segmented, passing it forward without re-segmenting")
+                    self.results_container_uris.append(
+                        self.create_output_container(resource))
+                    continue
+
+                text = texts.get(resource)
+                if not text or not text.strip():
+                    logger.warning(
+                        f"No content available for segmentation on {resource}"
+                    )
+                    skipped_empty += 1
+                    continue
+
+                logger.info(f"Extracting entities of {resource} (target {name})")
+                # The segmentor finds the input through the task's input container, and enriches it
+                result = segmentor.segment_and_validate(text, task=self)
+                if not result["conforms"] or result["unlocated"]:
+                    logger.warning(
+                        f"Writing the segmentation of {resource} with problems: "
+                        f"{len(result['violations'])} violations, {len(result['unlocated'])} problems in the answer")
+                self.insert_segmentation(result["turtle"])
+
                 self.results_container_uris.append(
-                    self.create_output_container(expression_uri))
-                continue
+                    self.create_output_container(resource))
 
-            if not text or not text.strip():
-                logger.warning(
-                    f"No content available for segmentation on {expression_uri}"
-                )
-                skipped_empty += 1
-                continue
-
-            logger.info(f"Extracting entities of {expression_uri}")
-            # The segmentor finds the expression through the task's input container, and enriches it
-            result = segmentor.segment_and_validate(text, task=self)
-            if not result["conforms"] or result["unlocated"]:
-                logger.warning(
-                    f"Writing the segmentation of {expression_uri} with problems: "
-                    f"{len(result['violations'])} violations, {len(result['unlocated'])} problems in the answer")
-            self.insert_segmentation(result["turtle"])
-
-            self.results_container_uris.append(
-                self.create_output_container(expression_uri))
-
-        if skipped_empty == len(expression_uris):
+        if skipped_empty == len(targets):
             raise RuntimeError(
                 f"Entity extraction task {self.task_uri}: "
-                f"all {len(expression_uris)} input expressions had empty content, "
+                f"all {len(targets)} inputs had empty content, "
                 f"nothing was processed"
             )

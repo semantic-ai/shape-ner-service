@@ -107,6 +107,8 @@ def test_occurrences_of_a_structure_do_not_overlap(run):
 def test_numbered_parts_are_whole(run):
     # When the occurrences of a structure are numbered, each starts with its own number: a sub-part (e.g. 1.1 after 1)
     # or an unnumbered continuation (e.g. after a page break) is part of the occurrence before it
+    if not run.segmentor.numbered_parts:
+        pytest.skip("the case's target has no numbered parts")
     for shape, segments in new_by_shape(run).items():
         labels = [run.segmentor._numbered_label(s["text"]) for s in segments]
         if not any(labels):

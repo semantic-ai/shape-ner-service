@@ -3,7 +3,8 @@ Shared helpers for the segmentation tests: a stand-in task, a temporary task in 
 and test cases in case folders (tests/cases/<id>/, after the RML test cases), with their files:
 
     README.md       title and description
-    input.ttl       input: the resource in the task's input container, with the text to segment (text_predicate)
+    input.ttl       input: the resource in the task's input container, with the text to segment (the target's
+                    text_predicate)
     context.ttl     input (optional): what the triplestore holds besides it, e.g. an original with the same title
     prompts/        snapshot of the prompts per attempt (attempt-1-system.txt, attempt-1-user.txt, ...)
     answers.json    the recorded LLM answers, one per attempt
@@ -22,6 +23,7 @@ patterns.ttl has one test:Case node, and everything else in it is a pattern:
     @prefix test: <http://example.org/segmentation-test#> .
 
     [] a test:Case ;
+        test:target "uittreksel" ;                        # target of the app config (optional, default the first)
         test:original <...> ;                             # original that must be found by title (optional, repeatable)
         test:count [ test:class besluit:Artikel ; test:number 6 ] .   # segmented entities per class
 
@@ -60,15 +62,21 @@ class TaskStub:
         self.ai_calls.append(call)
 
 
-def create_segmentor():
-    """The segmentor EntityExtractionTask uses, with the settings from the app config."""
+def default_target() -> str:
+    """The first target of the app config."""
+    from src.config import get_config
+    return next(iter(get_config().segmentation.targets))
+
+
+def create_segmentor(target: str | None = None):
+    """The segmentor EntityExtractionTask uses for the target (default the first), with the app config's settings."""
     from src.config import get_config
     from src.task.entity_extraction import create_segmentor as create_task_segmentor
 
     llm_config = get_config().segmentation.llm
     if llm_config.provider != "ollama" and not llm_config.api_key:
         pytest.skip(f"No API key configured for segmentation provider {llm_config.provider}")
-    return create_task_segmentor()
+    return create_task_segmentor(target or default_target())
 
 
 @contextmanager
@@ -134,7 +142,14 @@ def case_folders() -> list[Path]:
 
 def load_case(folder: Path) -> dict:
     from src.config import get_config
-    text_predicate = URIRef(get_config().segmentation.shape.text_predicate)
+    patterns = Graph().parse(folder / "patterns.ttl", format="turtle")
+    case = next(patterns.subjects(RDF.type, TEST["Case"]), None)
+    target = patterns.value(case, TEST["target"]) if case is not None else None
+    target = str(target) if target is not None else default_target()
+    targets = get_config().segmentation.targets
+    if target not in targets:
+        raise ValueError(f"{folder.name}/patterns.ttl: unknown target {target!r}, the app config has {list(targets)}")
+    text_predicate = URIRef(targets[target].text_predicate)
     input_graph = Graph().parse(folder / "input.ttl", format="turtle")
     inputs = sorted({str(s) for s in input_graph.subjects(text_predicate, None)})
     if len(inputs) != 1:
@@ -144,8 +159,6 @@ def load_case(folder: Path) -> dict:
     if (folder / "context.ttl").exists():
         context.parse(folder / "context.ttl", format="turtle")
 
-    patterns = Graph().parse(folder / "patterns.ttl", format="turtle")
-    case = next(patterns.subjects(RDF.type, TEST["Case"]), None)
     counts = list(patterns.objects(case, TEST["count"])) if case is not None else []
     description = {case, *counts}
     expected = Graph(namespace_manager=patterns.namespace_manager)
@@ -157,6 +170,7 @@ def load_case(folder: Path) -> dict:
     return {
         "name": folder.name,
         "folder": folder,
+        "target": target,
         "input": inputs[0],
         "text": str(input_graph.value(URIRef(inputs[0]), text_predicate)),
         "store": input_graph + context,
@@ -221,17 +235,19 @@ def capture_llm_calls(segmentor, answers: list | None = None) -> list[dict]:
     return calls
 
 
-def case_segmentor(record: bool):
-    """A segmentor of its own for a case: replaying needs no LLM, so no API key either."""
+def case_segmentor(record: bool, target: str | None = None):
+    """A segmentor of its own for a case's target (default the first): replaying needs no LLM, so no API key either."""
     if record:
-        return create_segmentor()
+        return create_segmentor(target)
+    from src.config import get_config
     from src.library.segmentors import LLMSegmentorWithShape
-    return LLMSegmentorWithShape(provider="ollama", model_name="replay")
+    return LLMSegmentorWithShape(get_config().segmentation.targets[target or default_target()],
+                                 provider="ollama", model_name="replay")
 
 
 def run_case(case: dict, record: bool) -> tuple[dict, list[dict], object, TaskStub]:
     """Segment the case's text, replaying its recorded answers or (record) calling the LLM."""
-    segmentor = case_segmentor(record)
+    segmentor = case_segmentor(record, case["target"])
     use_case_store(segmentor, case)
     calls = capture_llm_calls(segmentor, None if record else case["answers"])
     task = TaskStub(f"http://example.org/task/{case['name']}")

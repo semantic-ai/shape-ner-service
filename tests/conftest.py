@@ -9,7 +9,7 @@ def pytest_configure(config):
 
 @pytest.fixture(scope="session")
 def segmentor():
-    """One LLMSegmentorWithShape for all tests: the shape, examples and vocabularies are loaded once."""
+    """One LLMSegmentorWithShape (first target) for all tests: the shape, examples and vocabularies are loaded once."""
     from tests.support import create_segmentor
     return create_segmentor()
 

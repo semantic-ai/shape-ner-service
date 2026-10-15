@@ -1,13 +1,16 @@
 # Entity extraction service
 
-Extracts the entities in decision texts, as described by a SHACL shape. For each expression in a `shape-ner` task, it
-segments the text along the shape: an LLM finds the structures the shape describes (e.g. a decision and its articles)
-and the values of their properties. The service then:
+Extracts the entities in texts, as described by SHACL node shapes. Which inputs it handles, and along which node
+shapes, is configured per use case as a target (see [Configuration](#configuration)); the configured target segments
+decision expressions into a decision and its articles.
+
+For each input of a `shape-ner` task that a target applies to, an LLM finds the structures the target's node shapes
+describe and the values of their properties. The service then:
 
 - locates every value verbatim in the text;
-- validates the result against the shape, and asks the LLM again with the violations, up to three times;
-- writes the result to the AI graph: the expression enriched with its segments, the new entities (e.g. articles), and
-  an `oa:Annotation` linking a decision to an existing one with the same title.
+- validates the result against the shapes, and asks the LLM again with the violations, up to three times;
+- writes the result to the AI graph: the input enriched with its segments, the new entities (e.g. articles), and
+  optionally an `oa:Annotation` linking an entity to an existing one with the same title (`same_as_class`).
 
 The task is `EntityExtractionTask` in [src/task/entity_extraction.py](src/task/entity_extraction.py); its
 segmentor is `LLMSegmentorWithShape` in [src/library/segmentors.py](src/library/segmentors.py).
@@ -67,20 +70,44 @@ descriptive error. Secrets go in environment variables, with `__` as the nested 
 | `max_retries` | `3` | Attempts per LLM call on failure |
 | `retry_delay` | `15.0` | Seconds between retries |
 
-### `segmentation.shape`
+### `segmentation.targets`
 
-What to segment. Relative paths are resolved against the project root.
+The use cases, by name, after the targets of the
+[annotation-review-service](https://github.com/lblod/annotation-review-service/blob/master/config/config.ts). For each
+resource in a task's input container, the service tries the targets in order: the first whose `target_filter`
+matches the resource decides how it is segmented. A resource no target matches is skipped.
+
+```json
+"targets": {
+  "uittreksel": {
+    "label": "Uittreksel van besluit",
+    "prefixes": "PREFIX eli: <http://data.europa.eu/eli/ontology#>",
+    "target_filter": "?target a eli:Expression .",
+    "text_predicate": "https://data.europarl.europa.eu/def/epvoc#expressionContent",
+    "shape_path": "shapes/notulen-shape.ttl",
+    "node_shapes": ["https://data.vlaanderen.be/shacl/besluit-publicatie#BesluitShape", "..."],
+    ...
+  }
+}
+```
+
+Relative paths are resolved against the project root.
 
 | Key | Effect |
 |---|---|
+| `label` | Human-readable name of the target |
+| `prefixes` | `PREFIX` declarations used by `target_filter` |
+| `target_filter` | SPARQL graph pattern on `?target`, the resource; the target applies when it matches. It runs without `GRAPH`, so it matches in any graph |
 | `shape_path` | SHACL shape (Turtle) describing what to segment |
 | `node_shapes` | Node shapes of the shape to segment; empty for all |
-| `example_paths` | Example HTML documents whose element ids match the shape's usage notes; they become the examples in the prompt |
+| `html_example_path` | Example HTML document whose element ids match the shape's usage notes; it gives the examples in the prompt. Leave it out for no examples |
 | `ontologies` | Vocabularies whose `rdfs:subClassOf` hierarchy decides which shapes an existing entity can play |
-| `usage_note_predicate` | Property of the shape's node and property shapes holding the id of their example element |
-| `text_predicate` | Property of an input resource holding the text to segment |
+| `usage_note_predicate` | Property of the shape's node and property shapes holding the id of their example element; without it, there are no examples |
+| `text_predicate` | Property of the resource holding the text to segment, in any graph |
+| `numbered_parts` | `true` when the occurrences of a structure are numbered, with numbered sub-parts (`Artikel 1.1` under `Artikel 1`). The prompt then tells the LLM that a sub-part belongs to its part, and when the LLM returns a sub-part, or an occurrence without a number after a numbered one, anyway, it is merged into the occurrence before it. Default `false` |
+| `prompt_rules` | Rules on how the target's documents are divided, added to the prompt's rules on copying text. The `uittreksel` target has one: an occurrence is never split at a heading |
 | `same_as_predicate` | Property whose (almost) equal value identifies the same entity in the triplestore, e.g. a title |
-| `same_as_class` | Segmented entities of this class are linked to the same entity in the triplestore (an original); `null` to link nothing |
+| `same_as_class` | Segmented entities of this class are linked to the same entity in the triplestore (an original), found by `same_as_predicate`; leave it out to link nothing |
 
 ## Tests
 

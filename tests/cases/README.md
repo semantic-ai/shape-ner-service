@@ -23,9 +23,9 @@ Name it `SEGTC<number>-<short-name>`, with the next free number, e.g. `tests/cas
 
 ### 2. Write `input.ttl`
 
-`input.ttl` holds exactly one resource with the text to segment. The text goes under the `text_predicate` of the shape
-config (`segmentation.shape.text_predicate` in `config.json`, now `epvoc:expressionContent`). Zero or several such
-resources make the case fail to load.
+`input.ttl` holds exactly one resource with the text to segment. The text goes under the `text_predicate` of the
+case's target (see `test:target` in step 4; for the `uittreksel` target in `config.json`, `epvoc:expressionContent`).
+Zero or several such resources make the case fail to load.
 
 The resource also needs an `rdf:type` that can play one of the selected node shapes, e.g. `eli:Expression`. Without
 one, the segmentor doesn't take it as the input.
@@ -56,15 +56,15 @@ Add the entities the triplestore holds besides the input that matter to the segm
 original: a decision harvested elsewhere that the segmented decision should be linked to and not duplicated.
 `context.ttl` stands in for the triplestore, so an original is only found when it has:
 
-- the `same_as_class` of the shape config as its `rdf:type` (now `besluit:Besluit`)
+- the `same_as_class` of the target as its `rdf:type` (now `besluit:Besluit`)
 - the `same_as_predicate` (now `eli:title`) with (almost) the title the segmentor finds in the text
 
 Use the same `CONSTRUCT` query as above, with the URIs of these entities.
 
 ### 4. Write `patterns.ttl`
 
-`patterns.ttl` has one `test:Case` node with the counts and originals. Every other triple in it is a pattern the output
-must match:
+`patterns.ttl` has one `test:Case` node with the case's target, counts and originals. Every other triple in it is a
+pattern the output must match:
 
 ```turtle
 @prefix test: <http://example.org/segmentation-test#> .
@@ -73,6 +73,7 @@ must match:
 @prefix prov: <http://www.w3.org/ns/prov#> .
 
 [] a test:Case ;
+    test:target "uittreksel" ;                                        # a target in config.json, default the first
     test:original <https://.../besluiten/...> ;                       # optional, repeatable
     test:count [ test:class besluit:Besluit ; test:number 1 ] ,
                [ test:class besluit:Artikel ; test:number 6 ] .
