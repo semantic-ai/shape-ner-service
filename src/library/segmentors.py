@@ -1,7 +1,6 @@
 import re
 import json
 import uuid
-import difflib
 import textwrap
 import unicodedata
 from pathlib import Path
@@ -9,7 +8,7 @@ from string import Template
 import requests
 from typing import Optional, Any, List, Dict
 from helpers import logger
-from rdflib import Graph, URIRef, Literal, BNode, Namespace
+from rdflib import Graph, URIRef, Literal, BNode
 from rdflib.namespace import SH, RDF, RDFS
 from rdflib.collection import Collection
 from pyshacl import validate as shacl_validate
@@ -149,10 +148,6 @@ class LLMSegmentorWithShape:
     IGNORED_CONSTRAINTS = {str(SH.MinCountConstraintComponent), str(SH.MaxCountConstraintComponent)}
 
     MU_UUID = URIRef("http://mu.semte.ch/vocabularies/core/uuid")
-    # Annotation linking a segmented decision to its original, as the other annotations of the service
-    OA = Namespace("http://www.w3.org/ns/oa#")
-    NIF_CONFIDENCE = URIRef("http://persistence.uni-leipzig.org/nlp2rdf/ontologies/nif-core#confidence")
-    ANNOTATION_TEMPLATE = "http://data.lblod.info/id/annotations/{uuid}"
     IRI_NODE_KINDS = {SH.IRI, SH.BlankNode, SH.BlankNodeOrIRI}
     STRING_DATATYPES = {"http://www.w3.org/2001/XMLSchema#string", str(RDF.langString)}
 
@@ -181,8 +176,6 @@ class LLMSegmentorWithShape:
     LANGUAGE: Optional[str] = None
     # Text the LLM may leave out between two lines it copied, e.g. a page footer
     MAX_SKIPPED_CHARS = 300
-    # Minimal similarity of the titles of a segmented entity and an original (target: same_as_predicate)
-    TITLE_SIMILARITY = 0.9
     # Relative paths in the target are resolved against the project root
     PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -193,8 +186,6 @@ class LLMSegmentorWithShape:
         # Shape, node shapes, examples, vocabularies and the vocabulary-specific settings come from the target
         self.usage_note_predicate = URIRef(target.usage_note_predicate) if target.usage_note_predicate else None
         self.text_predicate = URIRef(target.text_predicate)
-        self.same_as_predicate = URIRef(target.same_as_predicate) if target.same_as_predicate else None
-        self.same_as_class = target.same_as_class
         # Tuned to the target's documents: how they are divided (see _merge_sub_parts)
         self.prompt_rules = target.prompt_rules
         self.numbered_parts = target.numbered_parts
@@ -539,85 +530,6 @@ class LLMSegmentorWithShape:
                 inputs = holding[:1]
         return inputs
 
-    # Originals: the same decision already in the triplestore, e.g. harvested from another publication
-    def find_similar_entities(self, title: str, class_uri: str, exclude: set[str]) -> List[Dict[str, Any]]:
-        """
-        Entities of the class whose same_as_predicate value is (almost) the given title: candidates from the
-        triplestore's full-text index (Virtuoso bif:contains on the title's longest words), kept when their
-        similarity is at least title_similarity.
-        """
-        from helpers import query
-        from escape_helpers import sparql_escape_uri
-
-        words = sorted(dict.fromkeys(re.findall(r"[^\W\d_]{4,}", title.lower())), key=len, reverse=True)[:6]
-        if not words or not class_uri:
-            return []
-        q = f"""
-        SELECT DISTINCT ?entity ?title WHERE {{
-          GRAPH ?titleGraph {{
-            ?entity {sparql_escape_uri(str(self.same_as_predicate))} ?title .
-            ?title bif:contains '{" AND ".join(f'"{word}"' for word in words)}' .
-          }}
-          GRAPH ?typeGraph {{ ?entity a {sparql_escape_uri(class_uri)} . }}
-        }} LIMIT 50
-        """
-        try:
-            bindings = query(q, sudo=True).get("results", {}).get("bindings", [])
-        except Exception as e:
-            logger.warning(f"Could not search for entities with title {title!r}: {e}")
-            return []
-        matches = []
-        for binding in bindings:
-            uri, candidate = binding["entity"]["value"], binding["title"]["value"]
-            score = self._title_similarity(title, candidate)
-            if uri not in exclude and score >= self.TITLE_SIMILARITY and uri not in {m["uri"] for m in matches}:
-                matches.append({"uri": uri, "title": candidate, "similarity": round(score, 3)})
-        return sorted(matches, key=lambda m: -m["similarity"])
-
-    def _title_similarity(self, a: str, b: str) -> float:
-        normalize = lambda t: " ".join(re.findall(r"\w+", t.lower()))
-        return difflib.SequenceMatcher(None, normalize(a), normalize(b)).ratio()
-
-    def _link_originals(self, result: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        For each segmented entity of the same_as_class, find originals in the triplestore with (almost) the
-        same title, and link each with an oa:Annotation: oa:hasTarget the segmented entity, oa:hasBody the original,
-        oa:motivatedBy oa:linking, nif:confidence the title similarity. Without an original there is no annotation.
-        Being the same decision, the segmented entity does not get what an original already defines (e.g. its
-        description). The Turtle is rebuilt and validated again; result["originals"] lists the links.
-        """
-        result["originals"] = []
-        if not self.same_as_class:
-            return result
-        segments = result["segments"]
-        known = {s["uri"] for s in segments} | {e["uri"] for e in context["entities"].values()}
-        for segment in segments:
-            if self.target_classes.get(segment["shape"]) != self.same_as_class:
-                continue
-            title = next((p["text"] for p in segment["properties"]
-                          if p["path"] == str(self.same_as_predicate) and "text" in p), None)
-            if title is None and segment["existing"]:
-                title = context["graph"].value(URIRef(segment["uri"]), self.same_as_predicate)
-            if not title:
-                continue
-            for match in self.find_similar_entities(str(title), self.same_as_class, known):
-                annotation_uuid = str(uuid.uuid4())
-                result["originals"].append({**match, "of": segment["key"], "target": segment["uri"],
-                                            "annotation": self.ANNOTATION_TEMPLATE.format(uuid=annotation_uuid),
-                                            "annotation_uuid": annotation_uuid})
-                known.add(match["uri"])
-                defined = self._defined_paths(self.fetch_entities([match["uri"]]), URIRef(match["uri"]), segment["shape"])
-                dropped = sorted({p["path"] for p in segment["properties"] if p["path"] in defined})
-                if dropped:
-                    logger.info(f"Not adding {dropped} to {segment['key']}: original {match['uri']} defines them")
-                segment["properties"] = [p for p in segment["properties"] if p["path"] not in defined]
-                logger.info(f"Linking {segment['key']} to original {match['uri']} (title similarity {match['similarity']})")
-        if result["originals"]:
-            result["turtle"] = self.to_turtle(segments, result["originals"])
-            result["conforms"], result["violations"] = self.validate(
-                result["turtle"], context["graph"], {s["uri"]: s["key"] for s in segments})
-        return result
-
     def fetch_entities(self, uris: List[str]) -> Graph:
         """Fetch all triples of the given entities, from any graph, from the SPARQL endpoint."""
         from helpers import query
@@ -763,12 +675,9 @@ class LLMSegmentorWithShape:
         the problems, up to max_attempts. Returns the attempt with the fewest problems per entity:
             {'turtle': str, 'segments': [...], 'conforms': bool, 'violations': [...],
              'unlocated': [...], 'attempts': int,
-             'usage': {'calls': int, 'input_tokens': int, 'output_tokens': int},  # summed over all attempts
-             'originals': [{'uri', 'title', 'similarity', 'of', 'target', 'annotation', 'annotation_uuid'}]}
-                                                                    # see _link_originals
+             'usage': {'calls': int, 'input_tokens': int, 'output_tokens': int}}  # summed over all attempts
         task: the task being processed (with task_uri). The inputs in its input container (see
-        fetch_related_entities) are enriched and linked to. A segmented decision is linked with an oa:Annotation to an
-        original with (almost) the same title.
+        fetch_related_entities) are enriched and linked to.
         """
         context = self._build_context(task, text)
         context["language"] = self._detect_language(text)
@@ -809,7 +718,6 @@ class LLMSegmentorWithShape:
                                    [f"- {self._describe_violation(v)}" for v in violations]),
             )
 
-        best = self._link_originals(best, context)
         if not best["conforms"] or best["unlocated"]:
             logger.warning(f"Segmentation still has problems after {best['attempts']} attempts, returning the attempt "
                            f"with {len(best['segments'])} entities, {len(best['violations'])} violations "
@@ -901,11 +809,8 @@ class LLMSegmentorWithShape:
         class_name = re.split(r"[#/]", class_uri.rstrip("#/"))[-1].lower()
         return self.URI_TEMPLATE.format(class_name=class_name, uuid=entity_uuid), entity_uuid
 
-    def to_turtle(self, segments: List[Dict[str, Any]], originals: Optional[List[Dict[str, Any]]] = None) -> str:
-        """
-        Serialize the new triples: new entities, added types and properties of existing entities, relations, and the
-        annotations linking segmented entities to their originals.
-        """
+    def to_turtle(self, segments: List[Dict[str, Any]]) -> str:
+        """Serialize the new triples: new entities, added types and properties of existing entities, and relations."""
         blocks = []
         for segment in segments:
             if segment["existing"]:
@@ -919,16 +824,6 @@ class LLMSegmentorWithShape:
                 statements.append(f"{URIRef(prop['path']).n3()} {value.n3()}")
             if statements:
                 blocks.append(f"{URIRef(segment['uri']).n3()} " + " ;\n    ".join(statements) + " .")
-        for original in originals or []:
-            statements = [
-                f"a {self.OA['Annotation'].n3()}",
-                f"{self.MU_UUID.n3()} {Literal(original['annotation_uuid']).n3()}",
-                f"{self.OA['hasTarget'].n3()} {URIRef(original['target']).n3()}",
-                f"{self.OA['hasBody'].n3()} {URIRef(original['uri']).n3()}",
-                f"{self.OA['motivatedBy'].n3()} {self.OA['linking'].n3()}",
-                f"{self.NIF_CONFIDENCE.n3()} {Literal(original['similarity']).n3()}",
-            ]
-            blocks.append(f"{URIRef(original['annotation']).n3()} " + " ;\n    ".join(statements) + " .")
         return "\n\n".join(blocks) + ("\n" if blocks else "")
 
     def _ask(self, text: str, task: Any = None, feedback: Optional[str] = None, system_prompt: Optional[str] = None) -> Dict[str, Any]:

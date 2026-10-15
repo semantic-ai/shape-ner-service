@@ -17,7 +17,7 @@ import uuid
 from types import SimpleNamespace
 
 import pytest
-from rdflib import Graph, Namespace, URIRef
+from rdflib import Graph, URIRef
 from rdflib.namespace import RDF
 
 from tests.support import (RecordingExhausted, case_folders, check_patterns, compare_output,
@@ -27,7 +27,6 @@ from tests.support import (RecordingExhausted, case_folders, check_patterns, com
 RECORD = os.environ.get("SEGMENTATION_RECORD") == "1"
 UPDATE_OUTPUT = os.environ.get("SEGMENTATION_RECORD") == "output"
 CASES = case_folders()
-OA = Namespace("http://www.w3.org/ns/oa#")
 
 
 @pytest.fixture(scope="module", params=CASES, ids=[folder.name for folder in CASES])
@@ -142,25 +141,6 @@ def test_new_entities_have_a_minted_uri_and_uuid(run):
             assert str(run.graph.value(URIRef(segment["uri"]), run.segmentor.MU_UUID)) == segment["uuid"]
             uuids.append(segment["uuid"])
     assert len(set(uuids)) == len(uuids)
-
-
-def test_originals_are_linked_not_changed(run):
-    segmentor, graph = run.segmentor, run.graph
-    annotations = set(graph.subjects(RDF.type, OA["Annotation"]))
-    assert len(annotations) == len(run.result["originals"])
-    for original in run.result["originals"]:
-        annotation = URIRef(original["annotation"])
-        assert graph.value(annotation, OA["hasTarget"]) == URIRef(original["target"])
-        assert graph.value(annotation, OA["hasBody"]) == URIRef(original["uri"])
-        assert graph.value(annotation, OA["motivatedBy"]) == OA["linking"]
-        assert float(graph.value(annotation, segmentor.NIF_CONFIDENCE)) >= segmentor.TITLE_SIMILARITY
-        assert (URIRef(original["uri"]), None, None) not in graph, f"original {original['uri']} was changed"
-        # Being the same decision, the segmented entity does not repeat what the original defines
-        segment = next(s for s in run.result["segments"] if s["uri"] == original["target"])
-        defined = segmentor._defined_paths(segmentor.fetch_entities([original["uri"]]), URIRef(original["uri"]),
-                                           segment["shape"]) - {str(RDF.type), str(segmentor.MU_UUID)}
-        repeated = sorted({str(p) for p in graph.predicates(URIRef(original["target"]))} & defined)
-        assert not repeated, f"{original['target']} repeats {repeated}, which original {original['uri']} defines"
 
 
 def test_ai_calls_are_recorded_on_the_task(run):

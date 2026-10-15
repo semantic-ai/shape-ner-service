@@ -5,7 +5,7 @@ This module provides Pydantic models for validating application configuration
 loaded from config.json.
 """
 
-from pydantic import BaseModel, Field, SecretStr, model_validator
+from pydantic import BaseModel, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from decide_ai_service_base.config import load_config
 
@@ -88,10 +88,6 @@ class TargetConfig(BaseModel):
         default=None,
         description="Property of the shape's node and property shapes holding the id of their example element"
     )
-    same_as_predicate: str | None = Field(
-        default=None,
-        description="Property whose (almost) equal value identifies the same entity in the triplestore, e.g. a title"
-    )
     prompt_rules: list[str] = Field(
         default=[],
         description="Rules on how the target's documents are divided, added to the prompt's rules on copying text, "
@@ -104,17 +100,6 @@ class TargetConfig(BaseModel):
                     "occurrence without a number after a numbered one that the LLM returns anyway is merged into the "
                     "occurrence before it"
     )
-    same_as_class: str | None = Field(
-        default=None,
-        description="Segmented entities of this class are linked to the same entity in the triplestore (an original), "
-                    "found by same_as_predicate; none to link nothing"
-    )
-
-    @model_validator(mode="after")
-    def check_same_as(self):
-        if self.same_as_class and not self.same_as_predicate:
-            raise ValueError("same_as_class needs a same_as_predicate to find the same entity by")
-        return self
 
 
 class SegmentationConfig(BaseModel):

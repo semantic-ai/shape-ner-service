@@ -3,11 +3,9 @@
 @prefix besluit: <http://data.vlaanderen.be/ns/besluit#> .
 @prefix eli: <http://data.europa.eu/eli/ontology#> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
-@prefix oa: <http://www.w3.org/ns/oa#> .
 
 [] a test:Case ;
     test:target "uittreksel" ;
-    test:original <https://lblod.zottegem.be/LBLODWeb/id/besluiten/50af1c5e78a1407699733aaf1df121d2-70589> ;
     test:count [ test:class besluit:Besluit ; test:number 1 ] ,
                [ test:class besluit:Artikel ; test:number 6 ] .
 
@@ -33,9 +31,3 @@
                    prov:value "Invoeren van parkeerverbod in de Leenstraat."^^test:startsWith ] ,
                  [ a besluit:Artikel ; eli:number "6" ;
                    prov:value "Dit aanvullend reglement zal ter kennisgeving worden toegestuurd"^^test:startsWith ] .
-
-# The decision is linked to the original from the HTML publication, which has the same title
-[] a oa:Annotation ;
-    oa:hasTarget <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> ;
-    oa:hasBody <https://lblod.zottegem.be/LBLODWeb/id/besluiten/50af1c5e78a1407699733aaf1df121d2-70589> ;
-    oa:motivatedBy oa:linking .

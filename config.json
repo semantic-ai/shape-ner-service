@@ -23,8 +23,6 @@
           "http://data.europa.eu/eli/ontology"
         ],
         "usage_note_predicate": "http://lblod.data.gift/vocabularies/besluit/usageNote",
-        "same_as_predicate": "http://data.europa.eu/eli/ontology#title",
-        "same_as_class": "http://data.vlaanderen.be/ns/besluit#Besluit",
         "numbered_parts": true,
         "prompt_rules": [
           "One occurrence holds all of its properties: never split it into several occurrences of the same structure, e.g. at a heading between two of its properties."

@@ -5,7 +5,7 @@ and test cases in case folders (tests/cases/<id>/, after the RML test cases), wi
     README.md       title and description
     input.ttl       input: the resource in the task's input container, with the text to segment (the target's
                     text_predicate)
-    context.ttl     input (optional): what the triplestore holds besides it, e.g. an original with the same title
+    context.ttl     input (optional): what the triplestore holds besides it that matters to the segmentation
     prompts/        snapshot of the prompts per attempt (attempt-1-system.txt, attempt-1-user.txt, ...)
     answers.json    the recorded LLM answers, one per attempt
     output.ttl      expected output: new entities as blank nodes, without their mu:uuid
@@ -24,7 +24,6 @@ patterns.ttl has one test:Case node, and everything else in it is a pattern:
 
     [] a test:Case ;
         test:target "uittreksel" ;                        # target of the app config (optional, default the first)
-        test:original <...> ;                             # original that must be found by title (optional, repeatable)
         test:count [ test:class besluit:Artikel ; test:number 6 ] .   # segmented entities per class
 
     <...expression> a besluit:Besluit .                   # triples with URIs must be in the result as they are
@@ -174,7 +173,6 @@ def load_case(folder: Path) -> dict:
         "input": inputs[0],
         "text": str(input_graph.value(URIRef(inputs[0]), text_predicate)),
         "store": input_graph + context,
-        "originals": sorted(str(o) for o in patterns.objects(case, TEST["original"])) if case is not None else [],
         "counts": {str(patterns.value(c, TEST["class"])): int(patterns.value(c, TEST["number"])) for c in counts},
         "expected": expected,
         "answers": json.loads(answers.read_text(encoding="utf-8")) if answers.exists() else None,
@@ -197,19 +195,8 @@ def use_case_store(segmentor, case: dict) -> None:
                 graph.add((URIRef(uri), p, o))
         return graph
 
-    def find_similar_entities(title, class_uri, exclude):
-        matches = []
-        for entity, candidate in store.subject_objects(segmentor.same_as_predicate):
-            if str(entity) in exclude or (entity, RDF.type, URIRef(class_uri)) not in store:
-                continue
-            score = segmentor._title_similarity(title, str(candidate))
-            if score >= segmentor.TITLE_SIMILARITY:
-                matches.append({"uri": str(entity), "title": str(candidate), "similarity": round(score, 3)})
-        return sorted(matches, key=lambda m: -m["similarity"])
-
     segmentor.fetch_related_entities = fetch_related_entities
     segmentor.fetch_entities = fetch_entities
-    segmentor.find_similar_entities = find_similar_entities
 
 
 def capture_llm_calls(segmentor, answers: list | None = None) -> list[dict]:
@@ -262,10 +249,9 @@ def run_case(case: dict, record: bool) -> tuple[dict, list[dict], object, TaskSt
 
 
 def normalized_output(result: dict) -> Graph:
-    """The output with new entities and annotations as blank nodes and without their mu:uuid, which differ per run."""
+    """The output with new entities as blank nodes and without their mu:uuid, which differ per run."""
     graph = Graph().parse(data=result["turtle"], format="turtle")
-    new = sorted([URIRef(s["uri"]) for s in result["segments"] if not s["existing"]]
-                 + [URIRef(o["annotation"]) for o in result["originals"]])
+    new = sorted(URIRef(s["uri"]) for s in result["segments"] if not s["existing"])
     bnodes = {uri: BNode(f"new{i + 1}") for i, uri in enumerate(new)}
     output = Graph()
     for prefix, namespace in PREFIXES.items():
@@ -336,10 +322,6 @@ def compare_output(case: dict, result: dict) -> list[str]:
 def check_patterns(case: dict, result: dict, segmentor) -> list[str]:
     """Everything in patterns.ttl that the segmentation result does not satisfy, one line (or block) per failure."""
     failures = []
-    found = {o["uri"] for o in result["originals"]}
-    for original in case["originals"]:
-        if original not in found:
-            failures.append(f"original {original} was not found by title (found: {sorted(found) or 'none'})")
 
     # Segmented entities: new ones and enriched existing ones
     actual_counts: dict[str, int] = {}

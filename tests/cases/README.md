@@ -9,7 +9,7 @@ A folder is a case when it holds an `input.ttl`. You write these files by hand:
 | File           | Required | Contents                                                                            |
 |----------------|----------|-------------------------------------------------------------------------------------|
 | `input.ttl`    | yes      | the resource to segment, with its text                                              |
-| `context.ttl`  | no       | other entities the segmentor should find in the triplestore, e.g. an original       |
+| `context.ttl`  | no       | what else the triplestore holds about the input, e.g. its types from other graphs   |
 | `patterns.ttl` | yes      | what the output must contain                                                        |
 | `README.md`    | no       | title, description and source of the case (only for people, the tests don't read it) |
 
@@ -52,18 +52,13 @@ CONSTRUCT { ?s ?p ?o } WHERE {
 
 ### 3. Write `context.ttl` (optional)
 
-Add the entities the triplestore holds besides the input that matter to the segmentation. The main example is an
-original: a decision harvested elsewhere that the segmented decision should be linked to and not duplicated.
-`context.ttl` stands in for the triplestore, so an original is only found when it has:
-
-- the `same_as_class` of the target as its `rdf:type` (now `besluit:Besluit`)
-- the `same_as_predicate` (now `eli:title`) with (almost) the title the segmentor finds in the text
-
-Use the same `CONSTRUCT` query as above, with the URIs of these entities.
+Add what the triplestore holds about the input besides `input.ttl`, when it matters to the segmentation: e.g. its
+types from other graphs (which decide the structures it can be enriched as), or values it already has (which the
+segmentor does not add again).
 
 ### 4. Write `patterns.ttl`
 
-`patterns.ttl` has one `test:Case` node with the case's target, counts and originals. Every other triple in it is a
+`patterns.ttl` has one `test:Case` node with the case's target and counts. Every other triple in it is a
 pattern the output must match:
 
 ```turtle
@@ -74,7 +69,6 @@ pattern the output must match:
 
 [] a test:Case ;
     test:target "uittreksel" ;                                        # a target in config.json, default the first
-    test:original <https://.../besluiten/...> ;                       # optional, repeatable
     test:count [ test:class besluit:Besluit ; test:number 1 ] ,
                [ test:class besluit:Artikel ; test:number 6 ] .
 

@@ -28,8 +28,6 @@ def test_shape_input_comes_from_config(segmentor):
     # The vocabulary-specific settings belong to the shape, not to the segmentor
     assert str(segmentor.usage_note_predicate) == shape_config.usage_note_predicate
     assert str(segmentor.text_predicate) == shape_config.text_predicate
-    assert str(segmentor.same_as_predicate) == shape_config.same_as_predicate
-    assert segmentor.same_as_class == shape_config.same_as_class
     # Every target class gets its superclasses from the configured vocabularies
     for definition in segmentor.definitions:
         superclasses = segmentor._superclasses(definition["target_class"]) - {definition["target_class"]}

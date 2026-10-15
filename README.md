@@ -9,8 +9,10 @@ describe and the values of their properties. The service then:
 
 - locates every value verbatim in the text;
 - validates the result against the shapes, and asks the LLM again with the violations, up to three times;
-- writes the result to the AI graph: the input enriched with its segments, the new entities (e.g. articles), and
-  optionally an `oa:Annotation` linking an entity to an existing one with the same title (`same_as_class`).
+- writes the result to the AI graph: the input enriched with its segments, and the new entities (e.g. articles).
+
+Linking the entities to the same entities already in the triplestore (e.g. a decision harvested from another
+publication) is left to a separate reconciliation service.
 
 The task is `EntityExtractionTask` in [src/task/entity_extraction.py](src/task/entity_extraction.py); its
 segmentor is `LLMSegmentorWithShape` in [src/library/segmentors.py](src/library/segmentors.py).
@@ -106,8 +108,6 @@ Relative paths are resolved against the project root.
 | `text_predicate` | Property of the resource holding the text to segment, in any graph |
 | `numbered_parts` | `true` when the occurrences of a structure are numbered, with numbered sub-parts (`Artikel 1.1` under `Artikel 1`). The prompt then tells the LLM that a sub-part belongs to its part, and when the LLM returns a sub-part, or an occurrence without a number after a numbered one, anyway, it is merged into the occurrence before it. Default `false` |
 | `prompt_rules` | Rules on how the target's documents are divided, added to the prompt's rules on copying text. The `uittreksel` target has one: an occurrence is never split at a heading |
-| `same_as_predicate` | Property whose (almost) equal value identifies the same entity in the triplestore, e.g. a title |
-| `same_as_class` | Segmented entities of this class are linked to the same entity in the triplestore (an original), found by `same_as_predicate`; leave it out to link nothing |
 
 ## Tests
 
