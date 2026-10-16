@@ -1,0 +1,201 @@
+[
+  {
+    "segments": [
+      {
+        "id": "N1",
+        "shape": "S1",
+        "text": "Uittreksel\n\nuit de notulen van de Gemeenteraad\n\n22 juni 2026\n\nAanwezig:\n\nLieve Vander Hauwert, voorzitter,\nEvelien De Both, burgemeester,\nBrecht Cassiman, Jenne De Potter, Marnic De Clercq, Lieselotte De Roover, Leen Goossens, schepenen,\nPeter Lagaert, schepen van rechtswege,\nPeter Roman, Cynthia Van den Steen, Evert De Smet, Heidi Schuddinck, Dieter Everaert, Kurt De Loor, \nLouie Van Rijsselberge, Yana Giovanis, Filip Morre, Robin De Cubber, Liliane De Lange, \nGeert Van Waeyenberge, Hans Van De Kerkhove, Nas De Spiegeleer, Katrien De Schampheleer, Nick Célis, \nJonah Penninck, Stijn De Bruycker, Hobbes Carnewal, Tom Machtelinckx, raadsleden,\nSandra De Roeck, wnd. algemeen directeur\n\nVerontschuldigd:\n\nLeen Borremans, raadslid\n\nAfwezig:\n\n__________________________________________",
+        "properties": [
+          {
+            "property": "S1.P1",
+            "text": "17. Verkeer. Aanvullend politiereglement op het verkeer. De invoering van een nieuwe verkeerscirculatie in de Parkstraat en Grotstraat. Aanpassing."
+          },
+          {
+            "property": "S1.P2",
+            "text": "26 juni 2026",
+            "value": "2026-06-26T00:00:00"
+          },
+          {
+            "property": "S1.P3",
+            "text": "22 juni 2026",
+            "value": "2026-06-22T00:00:00"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E20",
+            "text": "Lieve Vander Hauwert, voorzitter"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E4",
+            "text": "Evelien De Both, burgemeester"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E1",
+            "text": "Brecht Cassiman"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E12",
+            "text": "Jenne De Potter"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E23",
+            "text": "Marnic De Clercq"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E18",
+            "text": "Lieselotte De Roover"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E17",
+            "text": "Leen Goossens"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E26",
+            "text": "Peter Lagaert"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E27",
+            "text": "Peter Roman"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E2",
+            "text": "Cynthia Van den Steen"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E5",
+            "text": "Evert De Smet"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E10",
+            "text": "Heidi Schuddinck"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E3",
+            "text": "Dieter Everaert"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E15",
+            "text": "Kurt De Loor"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E22",
+            "text": "Louie Van Rijsselberge"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E32",
+            "text": "Yana Giovanis"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E6",
+            "text": "Filip Morre"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E28",
+            "text": "Robin De Cubber"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E21",
+            "text": "Liliane De Lange"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E7",
+            "text": "Geert Van Waeyenberge"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E9",
+            "text": "Hans Van De Kerkhove"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E24",
+            "text": "Nas De Spiegeleer"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E14",
+            "text": "Katrien De Schampheleer"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E25",
+            "text": "Nick Célis"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E13",
+            "text": "Jonah Penninck"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E30",
+            "text": "Stijn De Bruycker"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E11",
+            "text": "Hobbes Carnewal"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E31",
+            "text": "Tom Machtelinckx"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E29",
+            "text": "Sandra De Roeck, wnd. algemeen directeur"
+          },
+          {
+            "property": "S1.P5",
+            "ref": "E16",
+            "text": "Leen Borremans, raadslid"
+          },
+          {
+            "property": "S1.P8",
+            "text": "Uittreksel\n\nuit de notulen van de Gemeenteraad\n\n22 juni 2026\n\nAanwezig:\n\nLieve Vander Hauwert, voorzitter,\nEvelien De Both, burgemeester,\nBrecht Cassiman, Jenne De Potter, Marnic De Clercq, Lieselotte De Roover, Leen Goossens, schepenen,\nPeter Lagaert, schepen van rechtswege,\nPeter Roman, Cynthia Van den Steen, Evert De Smet, Heidi Schuddinck, Dieter Everaert, Kurt De Loor, \nLouie Van Rijsselberge, Yana Giovanis, Filip Morre, Robin De Cubber, Liliane De Lange, \nGeert Van Waeyenberge, Hans Van De Kerkhove, Nas De Spiegeleer, Katrien De Schampheleer, Nick Célis, \nJonah Penninck, Stijn De Bruycker, Hobbes Carnewal, Tom Machtelinckx, raadsleden,\nSandra De Roeck, wnd. algemeen directeur\n\nVerontschuldigd:\n\nLeen Borremans, raadslid\n\nAfwezig:\n\n__________________________________________\n\n17. Verkeer. Aanvullend politiereglement op het verkeer. De invoering van een nieuwe verkeerscirculatie in de Parkstraat en Grotstraat. Aanpassing.\n\nBevoegd\nJenne De Potter\n\nBevoegdheid\nArtikel 40, §3 van het Decreet Lokaal Bestuur.\n\nWetten en reglementen\nHet decreet van 16 mei 2008 betreffende de aanvullende reglementen op het wegverkeer en de plaatsing en bekostiging van de verkeerstekens.\n\nHet Koninklijk Besluit van 16 maart 1968, betreffende de politie over het wegverkeer.\n\nElektronisch ondertekend document, blz. 1 van 4. Verifieerbaar via code.esignflow.be met code 2446-1849-2518-2282\n\n\n\nHet Koninklijk Besluit van 1 december 1975 houdende algemeen reglement op de politie van het wegverkeer en van het gebruik van de openbare weg.\n\nHet Besluit van de Vlaamse Regering van 23 januari 2009 betreffende de aanvullende reglementen op het wegverkeer en de plaatsing en bekostiging van de verkeerstekens.\n\nHet Ministerieel Besluit van 11 oktober 1976 waarbij de minimum afmetingen en de bijzondere plaatsingsvoorwaarden van de verkeerstekens worden bepaald.\n\nDe omzendbrief MOB/2009/01 van 3 april 2009.\n\nVerwijzingsdocumenten\nAP. 18 september 2023. Track changes.\n\nVerantwoording\nIn 2023 werd er een aangepaste verkeerscirculatie ingevoerd in de Grotstraat en Parkstraat. De bussen konden echter in twee richtingen blijven rijden in de Grotstraat, wat de verkeersveiligheid en de doorstroming in deze drukke schoolomgeving niet ten goede kwam.\n\nNa de infrastructurele aanpassingen aan de hoek Parkstraat – Gentse Steenweg en een aantal vruchtbare gesprekken met De Lijn, zijn zij bereid hun lijnvoering aan te passen. Hierdoor wordt de Grotstraat volledig éénrichtingsverkeer, behalve voor fietsers en bromfietsers klasse A (BEV). Hierdoor zal lijn 251 van De Lijn een lusje maken via de Parkstraat en wordt de halte Grotenberge Kerk verplaatst naar de Parkstraat. Ook lijn 25 volgt een nieuwe route en rijdt niet langer via Grotenberge, maar via de Bijloke. Hierdoor wordt een nieuwe halte voorzien in de Leenstraat.\n\nDe aanpassing van het aanvullend politiereglement van 18 september 2023 zorgt voor de invoering van deze wijzigingen.\n\nStemmen\nMet algemene stemmen\n\nBESLIST:\nArtikel 1. Invoeren van éénrichtingsverkeer in de Grotstraat, uitgezonderd fietsers en bromfietsers klasse A.\n\nArtikel 1.1. Deze maatregel zal aangeduid worden door:\n\n Het plaatsen van verkeersbord F19 + onderbord M5 in het begin van de Grotstraat (voorbij het Xpunt met Parkstraat) en met leesrichting Gentse Steenweg.\n\n Het plaatsen van verkeersbord F19 + onderbord M5 in de Grotstraat (voorbij het Xpunt met August De Rouckstraat) en met leesrichting Gentse Steenweg.\n\n Het plaatsen van verkeersbord C1 + onderbord M3 in het begin van de Grotstraat (voorbij het Xpunt met Gentse Steenweg) en met leesrichting Grotenbergestraat.\n\n Het plaatsen van verkeersbord C1 + onderbord M3 in de Grotstraat (voorbij het Xpunt met August De Rouckstraat) en met leesrichting Grotenbergestraat.\n\nElektronisch ondertekend document, blz. 2 van 4. Verifieerbaar via code.esignflow.be met code 2446-1849-2518-2282\n\n\n\n Het plaatsen van verkeersbord C31b + onderbord M3 in de Gentse Steenweg (ter hoogte van het Xpunt met Grotstraat) en met leesrichting Gentse Steenweg.\n\n Het plaatsen van verkeersbord C31b + onderbord M3 in de August De Rouckstraat (ter hoogte van het Xpunt met Grotstraat) en met leesrichting Grotstraat.\n\n Het plaatsen van verkeersbord C31a + onderbord M3 in de Gentse Steenweg (ter hoogte van het Xpunt met Leenstraat) en met leesrichting Gentse Steenweg.\n\nArtikel 2. Invoeren van éénrichtingsverkeer in de Parkstraat, uitgezonderd fietsers en bromfietsers klasse A.\n\nArtikel 2.1. Deze maatregel zal aangeduid worden door:\n\n Het plaatsen van verkeersbord F19 + onderbord M5 in de Parkstraat (voorbij het Xpunt met Gentse Steenweg) en met leesrichting Grotstraat.\n\n Het plaatsen van verkeersbord F19 + onderbord M5 in de Parkstraat (voorbij de uitrit van parking Park Van Breivelde) en met leesrichting Grotstraat.\n\n Het plaatsen van verkeersbord C1 + onderbord M3 in de Parkstraat (voorbij het Xpunt met Grotstraat) en met leesrichting Gentse Steenweg.\n\n Het plaatsen van verkeersbord C1 + onderbord M3 in de Parkstraat (voorbij de uitrit van parking Park Van Breivelde) en met leesrichting Gentse Steenweg.\n\n Het plaatsen van verkeersbord C31b + M3 aan de uitrit van parking Park Van Breivelde, ter hoogte van het Xpunt met Parkstraat.\n\nArtikel 3. Invoeren van geschrankt parkeren in de Parkstraat.\n\nArtikel 3.1. Deze maatregel zal aangeduid worden door:\n\n Het plaatsen van de verkeersborden E1 + onderbord G Type Xa (begin) waar het parkeren niet toegestaan is.\n\n Het plaatsen van verkeersborden E9a + onderbord G Type Xa (begin) waar het parkeren wel toegestaan is.\n\n Het aanbrengen van markeringen die de parkeerstroken aanduiden.\n\nArtikel 4. Plaatsen van een verkeerseiland in de Parkstraat om te vermijden dat het éénrichtingsverkeer wordt genegeerd.\n\nArtikel 4.1. Deze maatregel zal aangeduid worden door:\n\n Het aanbrengen van een verdrijvingsvlak met plooibakens\n\n Het aanbrengen van een fietssuggestiestrook naast het verdrijvingsvlak voor fietsers en bromfietsers klasse A.\n\nArtikel 5. Invoeren van parkeerverbod in de Leenstraat.\n\nArtikel 5.1. Deze maatregel zal aangeduid worden door:\n\n Het plaatsen van de verkeersborden E1 tussen de Gentse Steenweg en de bushalte (onpare kant).\n\nElektronisch ondertekend document, blz. 3 van 4. Verifieerbaar via code.esignflow.be met code 2446-1849-2518-2282\n\n\n\nArtikel 6. Dit aanvullend reglement zal ter kennisgeving worden toegestuurd aan de Vlaamse Overheid, Afdeling Beleid Mobiliteit en Verkeersveiligheid, Departement Mobiliteit en Openbare Werken, Koning Albert II-laan 20 bus 2, 1000 Brussel.\n\nDe Gemeenteraad\n\ngetekend Sandra De Roeck getekend Lieve Vander Hauwert\nwnd. algemeen directeur voorzitter\n\nVoor eensluidend afschrift op 26 juni 2026\n\nSandra De Roeck Lieve Vander Hauwert\nwnd. algemeen directeur voorzitter\n\nElektronisch ondertekend document, blz. 4 van 4. Verifieerbaar via code.esignflow.be met code 2446-1849-2518-2282\n\n\nStad Zottegem\n2026-06-29T09:27:52+0000\nStad Zottegem\nEen rechtsgeldig digitaal getekend document afleveren.\n\n\nStad Zottegem\n2026-06-29T10:22:19+0000\nStad Zottegem\nEen rechtsgeldig digitaal getekend document afleveren."
+          },
+          {
+            "property": "S1.P11",
+            "ref": "E20",
+            "text": "Lieve Vander Hauwert, voorzitter"
+          },
+          {
+            "property": "S1.P9",
+            "ref": "E29",
+            "text": "Sandra De Roeck, wnd. algemeen directeur"
+          },
+          {
+            "property": "S1.P12",
+            "ref": "E8",
+            "text": "Gemeenteraad Zottegem"
+          },
+          {
+            "property": "S1.P14",
+            "text": "22 juni 2026",
+            "value": "2026-06-22T00:00:00"
+          }
+        ]
+      }
+    ]
+  }
+]

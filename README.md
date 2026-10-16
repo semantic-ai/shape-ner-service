@@ -62,9 +62,9 @@ to segment it again, delete those annotations.
 
 ## Configuration
 
-Settings are in `config.json`, validated at startup via Pydantic: invalid values cause a startup failure with a
+Settings are in `config/config.json`, validated at startup via Pydantic: invalid values cause a startup failure with a
 descriptive error. Secrets go in environment variables, with `__` as the nested delimiter (e.g.
-`SEGMENTATION__LLM__API_KEY`), set in `docker-compose.override.yml`; never commit them to `config.json`.
+`SEGMENTATION__LLM__API_KEY`), set in `docker-compose.override.yml`; never commit them to `config/config.json`.
 
 ### `segmentation.llm`
 
@@ -92,17 +92,18 @@ matches the resource decides how it is segmented. A resource no target matches i
     "prefixes": "PREFIX eli: <http://data.europa.eu/eli/ontology#>",
     "target_filter": "?target a eli:Expression .",
     "text_predicate": "https://data.europarl.europa.eu/def/epvoc#expressionContent",
-    "shape_path": "shapes/notulen-shape.ttl",
+    "shape_path": "/config/shapes/notulen-shape.ttl",
     "node_shapes": ["https://data.vlaanderen.be/shacl/besluit-publicatie#BesluitShape", "..."],
     ...
   }
 }
 ```
 
-Relative paths are resolved against the project root.
+Relative paths are resolved against the project root. The shapes and examples are in `config/shapes/` and `config/examples/`, mounted at `/config/shapes` and `/config/examples` (see `docker-compose.yaml`), so the configured paths are absolute.
 
 | Key | Effect |
 |---|---|
+| `uri` | URI identifying the target, e.g. for a test case to name it (`test:config`) |
 | `label` | Human-readable name of the target |
 | `prefixes` | `PREFIX` declarations used by `target_filter` and `related_entities` |
 | `target_filter` | SPARQL graph pattern on `?target`, the resource; the target applies when it matches. It runs without `GRAPH`, so it matches in any graph |
@@ -114,6 +115,7 @@ Relative paths are resolved against the project root.
 | `usage_note_predicate` | Property of the shape's node and property shapes holding the id of their example element; without it, there are no examples |
 | `text_predicate` | Property of the resource holding the text to segment, in any graph |
 | `numbered_parts` | `true` when the occurrences of a structure are numbered, with numbered sub-parts (`Artikel 1.1` under `Artikel 1`). The prompt then tells the LLM that a sub-part belongs to its part, and when the LLM returns a sub-part, or an occurrence without a number after a numbered one, anyway, it is merged into the occurrence before it. Default `false` |
+| `placeholders` | `true` to let a relation to a class that no node shape in scope is of (e.g. the minutes of a session, a `foaf:Document`) be given as the passage that mentions what it refers to. That passage becomes a new entity of the relation's `sh:class`, one per distinct passage, with no properties of its own, annotated on the input like the other entities. Default `false` |
 | `prompt_rules` | Rules on how the target's documents are divided, added to the prompt's rules on copying text. The `uittreksel` target has one: an occurrence is never split at a heading |
 
 ## Tests
@@ -130,4 +132,4 @@ case, see [tests/cases/README.md](tests/cases/README.md).
 - **Network**: ensure the `app-decide_default` network exists, or update the network name in `docker-compose.yaml`.
 - **Ports**: the service runs on port 80 internally. For production, expose it via the dispatcher instead of opening
   ports directly.
-- **Volumes**: `config.json` is mounted read-only at `/config/config.json`.
+- **Volumes**: the `config/` folder (`config.json`, `shapes/` and `examples/`) is mounted read-only at `/config`.

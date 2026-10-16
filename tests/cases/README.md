@@ -24,7 +24,8 @@ Name it `SEGTC<number>-<short-name>`, with the next free number, e.g. `tests/cas
 ### 2. Write `input.ttl`
 
 `input.ttl` holds exactly one resource with the text to segment. The text goes under the `text_predicate` of the
-case's target (see `test:target` in step 4; for the `uittreksel` target in `config.json`, `epvoc:expressionContent`).
+case's target (see `test:config` in step 4; for the `uittreksel` target in `config/config.json`,
+`epvoc:expressionContent`).
 Zero or several such resources make the case fail to load.
 
 The resource also needs what the target's `target_filter` checks, e.g. `a eli:Expression` for `uittreksel`. The
@@ -68,7 +69,7 @@ pattern the output must match:
 @prefix prov: <http://www.w3.org/ns/prov#> .
 
 [] a test:Case ;
-    test:target "uittreksel" ;                                        # a target in config.json, default the first
+    test:config <http://lblod.data.gift/id/shape-ner/configs/uittreksel> ;  # a config uri (see config.json)
     test:count [ test:class besluit:Besluit ; test:number 1 ] ,
                [ test:class besluit:Artikel ; test:number 6 ] .
 
@@ -81,6 +82,14 @@ pattern the output must match:
 - **Blank nodes** match any entity, since the URIs of new entities are minted per run.
 - **Literals** are compared on their text, ignoring whitespace and language tags. `^^test:startsWith` and
   `^^test:contains` match part of the text.
+
+To check that something is *not* in the output, add a `test:absent` to the `test:Case` node: a blank node with a
+pattern, written the same way, that the output must not match. `[]` as an object matches any value:
+
+```turtle
+[] a test:Case ;
+    test:absent [ a besluit:Zitting ; prov:endedAtTime [] ] .   # no session has an end time
+```
 
 Keep the patterns to what matters for the case: the general checks in `test_segmentation_cases.py` already cover what
 holds for every segmentation. `SEGTC0001-zottegem-uittreksel/patterns.ttl` is a complete example.

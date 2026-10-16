@@ -1,0 +1,55 @@
+# Patterns the output of SEGTC0002 must match (see tests/support.py).
+@prefix test: <http://example.org/segmentation-test#> .
+@prefix besluit: <http://data.vlaanderen.be/ns/besluit#> .
+@prefix ext: <http://mu.semte.ch/vocabularies/ext/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+[] a test:Case ;
+    test:config <http://lblod.data.gift/id/shape-ner/configs/uittreksel-zitting> ;
+    test:count [ test:class besluit:Zitting ; test:number 1 ] ,
+               [ test:class foaf:Document ; test:number 1 ] ,       # placeholder: the minutes
+               [ test:class besluit:Agendapunt ; test:number 1 ] ;  # placeholder: the agenda item
+    # The text doesn't say when the session ended: "Voor eensluidend afschrift op 26 juni 2026" is the date of the copy
+    test:absent [ a besluit:Zitting ; prov:endedAtTime [] ] .
+
+# The header is the session, held by the municipal council: its chair, the mandatarissen present at its start, the
+# one excused (absent at its start), and the acting director-general as secretary
+[] a besluit:Zitting ;
+    besluit:isGehoudenDoor <http://data.lblod.info/id/bestuursorganen/8be6f67728e602e926b80f2a7baad4b03a5d9f67a435d5364596c5252d683004> ;
+    besluit:heeftVoorzitter <http://data.lblod.info/id/mandatarissen/segtc0002-lieve-vander-hauwert-voorzitter> ;
+    besluit:heeftSecretaris <http://data.lblod.info/id/mandatarissen/segtc0002-sandra-de-roeck> ;
+    ext:heeftAfwezigeBijStart <http://data.lblod.info/id/mandatarissen/segtc0002-leen-borremans> ;
+    # The chair is present too, but as either of her mandatarissen ("Lieve Vander Hauwert, voorzitter")
+    besluit:heeftAanwezigeBijStart <http://data.lblod.info/id/mandatarissen/segtc0002-evelien-de-both>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-brecht-cassiman>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-jenne-de-potter>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-marnic-de-clercq>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-lieselotte-de-roover>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-leen-goossens>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-peter-lagaert>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-peter-roman>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-cynthia-van-den-steen>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-evert-de-smet>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-heidi-schuddinck>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-dieter-everaert>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-kurt-de-loor>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-louie-van-rijsselberge>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-yana-giovanis>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-filip-morre>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-robin-de-cubber>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-liliane-de-lange>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-geert-van-waeyenberge>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-hans-van-de-kerkhove>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-nas-de-spiegeleer>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-katrien-de-schampheleer>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-nick-celis>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-jonah-penninck>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-stijn-de-bruycker>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-hobbes-carnewal>,
+        <http://data.lblod.info/id/mandatarissen/segtc0002-tom-machtelinckx> .
+
+# The session's minutes and its agenda item are not in scope, but mentioned in the text: placeholders of their class
+[] a besluit:Zitting ;
+    besluit:heeftNotulen [ a foaf:Document ] ;
+    besluit:behandelt [ a besluit:Agendapunt ] .

@@ -4,8 +4,9 @@ Shared helpers for the segmentation tests: a stand-in task, the LLM usage report
     README.md       title and description
     input.ttl       input: the resource in the task's input container, with the text to segment (the target's
                     text_predicate)
-    context.ttl     input (optional): the existing entities related to the input, which new entities can refer to
-                    (what the target's related_entities query finds), with their triples
+    context.ttl     input (optional): the existing entities related to the input, which new entities can refer to:
+                    what the target's related_entities query finds. Each has an rdfs:label, for the ?label the
+                    query gives; other subjects in it only provide triples
     prompts/        snapshot of the prompts per attempt (attempt-1-system.txt, attempt-1-user.txt, ...)
     answers.json    the recorded LLM answers, one per attempt
     output.ttl      expected output: the new entities and their annotations, with the URIs minted per run as blank
@@ -25,8 +26,9 @@ patterns.ttl has one test:Case node, and everything else in it is a pattern:
     @prefix test: <http://example.org/segmentation-test#> .
 
     [] a test:Case ;
-        test:target "uittreksel" ;                        # target of the app config (optional, default the first)
-        test:count [ test:class besluit:Artikel ; test:number 6 ] .   # segmented entities per class
+        test:config <...configs/uittreksel> ;             # a target's URI in the app config (default the first)
+        test:count [ test:class besluit:Artikel ; test:number 6 ] ;   # segmented entities per class
+        test:absent [ a besluit:Artikel ; eli:number "0" ] .          # a pattern the output must not match
 
     [] a besluit:Artikel ;                                # a blank node is any entity: its new URI is not known
         eli:number "1" ;
@@ -36,6 +38,9 @@ A URI in a pattern (e.g. of a related entity in context.ttl) must be in the resu
 
 Literals are compared on their text, ignoring whitespace differences and language tags; ^^test:startsWith and
 ^^test:contains compare part of it. Blank nodes linked to each other are matched together.
+
+Each test:absent is a blank node with a pattern of its own, written the same way, that the output must not match: e.g.
+[ a besluit:Zitting ; prov:endedAtTime [] ] fails when any session has an end time, as [] matches any value.
 """
 import copy
 import difflib
@@ -45,7 +50,7 @@ from pathlib import Path
 import pytest
 from rdflib import BNode, Dataset, Graph, Literal, Namespace, URIRef
 from rdflib.compare import graph_diff, isomorphic, to_isomorphic
-from rdflib.namespace import RDF
+from rdflib.namespace import RDF, RDFS
 
 # Namespace is a str: use TEST["count"], as TEST.count would be str.count
 TEST = Namespace("http://example.org/segmentation-test#")
@@ -116,11 +121,15 @@ def load_case(folder: Path) -> dict:
     from src.config import get_config
     patterns = Graph().parse(folder / "patterns.ttl", format="turtle")
     case = next(patterns.subjects(RDF.type, TEST["Case"]), None)
-    target = patterns.value(case, TEST["target"]) if case is not None else None
-    target = str(target) if target is not None else default_target()
     targets = get_config().segmentation.targets
-    if target not in targets:
-        raise ValueError(f"{folder.name}/patterns.ttl: unknown target {target!r}, the app config has {list(targets)}")
+    config = patterns.value(case, TEST["config"]) if case is not None else None
+    if config is None:
+        target = default_target()
+    else:
+        target = next((name for name, t in targets.items() if t.uri == str(config)), None)
+        if target is None:
+            raise ValueError(f"{folder.name}/patterns.ttl: no target with URI <{config}> in the app config, which has "
+                             f"{[t.uri for t in targets.values()]}")
     text_predicate = URIRef(targets[target].text_predicate)
     input_graph = Graph().parse(folder / "input.ttl", format="turtle")
     inputs = sorted({str(s) for s in input_graph.subjects(text_predicate, None)})
@@ -132,7 +141,14 @@ def load_case(folder: Path) -> dict:
         context.parse(folder / "context.ttl", format="turtle")
 
     counts = list(patterns.objects(case, TEST["count"])) if case is not None else []
-    description = {case, *counts}
+    absent = []
+    for root in (patterns.objects(case, TEST["absent"]) if case is not None else []):
+        pattern = _pattern_at(patterns, root)
+        if not isinstance(root, BNode) or not len(pattern):
+            raise ValueError(f"{folder.name}/patterns.ttl: test:absent must be a blank node with a pattern, "
+                             f"found {root.n3()}")
+        absent.append(pattern)
+    description = {case, *counts} | {s for pattern in absent for s in pattern.subjects()}
     expected = Graph(namespace_manager=patterns.namespace_manager)
     for triple in patterns:
         if triple[0] not in description:
@@ -145,10 +161,11 @@ def load_case(folder: Path) -> dict:
         "target": target,
         "input": inputs[0],
         "text": str(input_graph.value(URIRef(inputs[0]), text_predicate)),
-        "related": sorted({str(s) for s in context.subjects() if isinstance(s, URIRef)}),
+        "related": {str(s): str(o) for s, o in sorted(context.subject_objects(RDFS.label)) if isinstance(s, URIRef)},
         "store": context,
         "counts": {str(patterns.value(c, TEST["class"])): int(patterns.value(c, TEST["number"])) for c in counts},
         "expected": expected,
+        "absent": absent,
         "answers": json.loads(answers.read_text(encoding="utf-8")) if answers.exists() else None,
     }
 
@@ -158,14 +175,16 @@ def use_case_store(segmentor, case: dict) -> None:
     store = case["store"]
 
     def fetch_related_entities(target_uri):
-        # As the target's related_entities query: the entities in context.ttl
-        return case["related"] if target_uri == case["input"] else []
+        # As the target's related_entities query: the entities in context.ttl with their rdfs:label as label
+        return dict(case["related"]) if target_uri == case["input"] else {}
 
     def fetch_entities(uris):
+        # Their triples, without the rdfs:label that stands in for the query's ?label
         graph = Graph()
         for uri in uris:
             for p, o in store.predicate_objects(URIRef(uri)):
-                graph.add((URIRef(uri), p, o))
+                if p != RDFS.label:
+                    graph.add((URIRef(uri), p, o))
         return graph
 
     segmentor.fetch_related_entities = fetch_related_entities
@@ -344,7 +363,7 @@ def check_patterns(case: dict, result: dict, segmentor) -> list[str]:
     # Segmented entities
     actual_counts: dict[str, int] = {}
     for segment in result["segments"]:
-        target_class = segmentor.target_classes.get(segment["shape"])
+        target_class = segment.get("class") or segmentor.target_classes.get(segment["shape"])
         actual_counts[target_class] = actual_counts.get(target_class, 0) + 1
     for target_class, number in case["counts"].items():
         if actual_counts.get(target_class, 0) != number:
@@ -354,7 +373,27 @@ def check_patterns(case: dict, result: dict, segmentor) -> list[str]:
     for group in _groups(case["expected"]):
         if not graph.query(_ask(group)).askAnswer:
             failures.append("pattern not in the output:\n" + _describe(group, case["expected"]))
+    for pattern in case["absent"]:
+        triples = sorted(pattern, key=lambda t: tuple(map(str, t)))
+        if graph.query(_ask(triples)).askAnswer:
+            failures.append("pattern in the output, which must not be (test:absent):\n" + _describe(triples, pattern))
     return failures
+
+
+def _pattern_at(graph: Graph, root) -> Graph:
+    """The triples of the pattern at a node: its own, and those of the blank nodes it links to."""
+    pattern = Graph(namespace_manager=graph.namespace_manager)
+    seen, todo = set(), [root]
+    while todo:
+        node = todo.pop()
+        if node in seen:
+            continue
+        seen.add(node)
+        for p, o in graph.predicate_objects(node):
+            pattern.add((node, p, o))
+            if isinstance(o, BNode):
+                todo.append(o)
+    return pattern
 
 
 def _groups(expected: Graph) -> list[list[tuple]]:

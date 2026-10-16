@@ -54,6 +54,9 @@ class TargetConfig(BaseModel):
     resolved against the project root.
     """
 
+    uri: str = Field(
+        description="URI identifying the target, e.g. for a test case to name it (test:config)"
+    )
     label: str | None = Field(
         default=None,
         description="Human-readable name of the target"
@@ -69,8 +72,9 @@ class TargetConfig(BaseModel):
     related_entities: str | None = Field(
         default=None,
         description="SPARQL graph pattern binding ?entity from ?target: existing entities related to the target, which "
-                    "the entities found in its text can refer to (e.g. the session of a decision); none for none. "
-                    "They are never changed"
+                    "the entities found in its text can refer to (e.g. the mandatarissen of the body that held a "
+                    "session); none for none. It can also bind ?label, describing the entity to the LLM (e.g. a "
+                    "mandataris's name and role). They are never changed"
     )
     text_predicate: str = Field(
         description="Property of the input resource holding the text to segment"
@@ -93,6 +97,12 @@ class TargetConfig(BaseModel):
     usage_note_predicate: str | None = Field(
         default=None,
         description="Property of the shape's node and property shapes holding the id of their example element"
+    )
+    placeholders: bool = Field(
+        default=False,
+        description="A relation to a class that no node shape in scope is of can also be given as the passage that "
+                    "mentions what it refers to (e.g. the minutes of a session): that becomes a new entity of the "
+                    "relation's sh:class, one per distinct passage, without properties of its own"
     )
     prompt_rules: list[str] = Field(
         default=[],

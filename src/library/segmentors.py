@@ -52,8 +52,13 @@ class LLMSegmentorWithShape:
 
     TASK
     - Find every occurrence of each structure in the document.
-    - For each occurrence, also find the value of each of its properties that is
-      present inside that occurrence.
+    - For each occurrence, also find the value of each of its properties: inside
+      that occurrence, or elsewhere in the document when it is only there (e.g.
+      a location in a page footer).
+    - A value belongs to the occurrence it describes. A value, such as a date,
+      of something that is not one of the STRUCTURES (e.g. the document itself,
+      like the date of a certified copy) is left out: never put it on an
+      occurrence instead.
     - Only use the keys listed under STRUCTURES and EXISTING ENTITIES. Omit
       structures and properties that are absent; never invent content.
     - Cardinalities (min/max) are only a suggestion: omit a property when its
@@ -81,8 +86,15 @@ class LLMSegmentorWithShape:
       entity: give its key in "ref" ("N..." id of an occurrence or "E..." key of
       an existing entity) instead of "text".
     - The relation is given on the occurrence that has the property.
+    - A ref to an existing entity also gets "text": where the document mentions
+      it, copied verbatim (e.g. a person's name as written). Go through the
+      document and give a ref for every mention of an existing entity.
     - Always give every relation the document supports from the occurrences you
       return, to each other and to existing entities.
+    - Leave a relation out when what it refers to is neither an occurrence of
+      one of the STRUCTURES nor one of the EXISTING ENTITIES (e.g. a document
+      that is not in scope): never refer to another occurrence, or to the
+      occurrence itself, instead.
 
     COPYING TEXT
     - "text": the complete text of the occurrence or property value, copied
@@ -99,13 +111,19 @@ class LLMSegmentorWithShape:
     - Copy everything between the start and the end of the text, including page
       headers, footers and page numbers that interrupt it: the text must be one
       contiguous piece of the document.
+    - A property with a datatype other than a string (e.g. a date, a date and
+      time, or a number) also gets "value": the value in the form of that
+      datatype, e.g. 2026-06-22 for a date and 2026-06-22T19:00:00 for a date and
+      time. Its "text" is still the text the value is read from, copied verbatim.
 
     OUTPUT CONTRACT
     Respond with STRICT JSON only, no markdown fences or commentary, exactly:
     {"segments": [
       {"id": "N1", "shape": "<structure key>", "text": "...",
        "properties": [{"property": "<property key>", "text": "..."},
-                      {"property": "<relation property key>", "ref": "<N or E key>"}]}
+                      {"property": "<typed property key>", "text": "...", "value": "..."},
+                      {"property": "<relation property key>", "ref": "<N key>"},
+                      {"property": "<relation property key>", "ref": "<E key>", "text": "..."}]}
     ]}
     Every new occurrence has a unique "id" (N1, N2, ...). List new occurrences in
     document order. Return {"segments": []} if nothing is found.
@@ -184,6 +202,9 @@ class LLMSegmentorWithShape:
         # Tuned to the target's documents: how they are divided (see _merge_sub_parts)
         self.prompt_rules = target.prompt_rules
         self.numbered_parts = target.numbered_parts
+        # A relation to a class no structure in scope is of can also be given as the passage that mentions it, which
+        # becomes a placeholder entity of that class (see _placeholder)
+        self.placeholders = target.placeholders
         self.shape_graph = Graph().parse(self._resolve(target.shape_path), format="turtle")
         # rdfs:subClassOf hierarchy, e.g. besluit:Besluit -> eli:LegalExpression -> eli:Expression
         self.ontology = self._load_ontologies(target.ontologies)
@@ -227,6 +248,13 @@ class LLMSegmentorWithShape:
                            "occurrence it belongs to, not a separate occurrence of that structure: the occurrence "
                            "includes its sub-parts and ends where the next part at the same level starts (2 after 1).")
 
+    # For a target with placeholders: relations to what is not one of the structures (see _placeholder)
+    PLACEHOLDER_RULE = ("Unlike other relations, a relation that says \"give ... the text that mentions it\" can "
+                        "refer to something that is not one of the STRUCTURES: give the \"ref\" of an existing entity "
+                        "when it says so and it is one of them, otherwise \"text\": the passage of the document that "
+                        "mentions it (e.g. the name of a document), which becomes an entity of its own. Only when the "
+                        "document mentions it, and never the occurrence itself.")
+
     def _render_system_prompt(self) -> str:
         """
         The system prompt with, among the rules on copying text, the heading rule, the numbered parts rule (for a target
@@ -234,6 +262,7 @@ class LLMSegmentorWithShape:
         """
         rules = [self.HEADING_RULE.format(max_words=self.HEADING_MAX_WORDS),
                  *([self.NUMBERED_PARTS_RULE] if self.numbered_parts else []),
+                 *([self.PLACEHOLDER_RULE] if self.placeholders else []),
                  *self.prompt_rules]
         rules = "".join(textwrap.fill(rule, width=self.RULE_WIDTH, initial_indent="    - ", subsequent_indent="      ")
                         + "\n" for rule in rules)
@@ -368,7 +397,8 @@ class LLMSegmentorWithShape:
                 # only typed values (e.g. dates) and IRIs are hidden metadata the text does not contain as such
                 if prop["example"]["source"] == "content" and prop["datatype"] in self.STRING_DATATYPES:
                     prop["example"]["hidden"] = False
-                # A relation's example is the text of the occurrence it refers to, given as a ref
+                # A relation's example is the text of what it refers to; its parts in an occurrence's example are
+                # marked with the structure they are an occurrence of
                 if prop["class"]:
                     prop["example"]["ref"] = self._structure_of(prop["class"])
                 # Without a usage note of its own, the occurrence is the closest typed element around its properties
@@ -407,6 +437,10 @@ class LLMSegmentorWithShape:
         return [e for e in root.find_all(attrs={"property": element["property"]})
                 if e.find_parent(attrs={"typeof": True}) is owner]
 
+    def _takes_placeholder(self, prop: Dict[str, Any]) -> bool:
+        """The relation can be given as the passage that mentions what it refers to: no structure in scope is of it."""
+        return self.placeholders and bool(prop["class"]) and self._structure_of(prop["class"]) is None
+
     def _structure_of(self, class_uri: str) -> Optional[str]:
         """Key of the selected structure whose instances are instances of the class, e.g. "S2" for besluit:Artikel."""
         return next((d["key"] for d in self.definitions
@@ -425,17 +459,37 @@ class LLMSegmentorWithShape:
             value = value[:self.EXAMPLE_MAX_LENGTH].rstrip() + "…"
         return {"value": value, "hidden": hidden, "source": source}
 
-    def _render_example(self, example: Optional[Dict[str, Any]], indent: str) -> List[str]:
+    def _render_example(self, example: Optional[Dict[str, Any]], indent: str, hint: Optional[str] = None) -> List[str]:
+        """The example of a structure or property; hint: for a relation, what it can refer to (see _relation_hint)."""
         if not example or not example["value"]:
             return []
         label = ("Example, with its properties marked [key] ... [/key]" if example.get("annotated") else
                  "Example (hidden metadata, not visible text)" if example["hidden"] else
-                 f"Example of the {example['ref']} occurrence it refers to (give its \"ref\")" if example.get("ref") else
+                 f"Example of what it refers to ({hint})" if hint else
                  "Example")
         return [f"{indent}{label}: {example['value']}"]
 
-    def _render_shape_definitions(self) -> str:
-        """Describe the node shapes and their properties as plain text for the prompt."""
+    def _relation_hint(self, prop: Dict[str, Any], context: Optional[Dict[str, Any]] = None) -> Optional[str]:
+        """
+        What the relation can refer to, for the prompt: an occurrence of a structure in scope of its class, an existing
+        entity of its class (in the context of this call), or, with placeholders, the passage that mentions it; none
+        when nothing can be it.
+        """
+        structure = self._structure_of(prop["class"])
+        options = []
+        if structure:
+            options.append(f"the \"ref\" of an {structure} occurrence")
+        if any(self._can_play(entity["types"], prop["class"]) for entity in (context or {}).get("entities", {}).values()):
+            options.append("the \"ref\" of an existing entity of that class")
+        if self._takes_placeholder(prop):
+            options.append("the text that mentions it")
+        return "give " + " or ".join(options) if options else None
+
+    def _render_shape_definitions(self, context: Optional[Dict[str, Any]] = None) -> str:
+        """
+        Describe the node shapes and their properties as plain text for the prompt. With the context of a call, a
+        relation says which of its existing entities it can refer to.
+        """
         lines = []
         for definition in self.definitions:
             header = f"[{definition['key']}] {definition['name']}"
@@ -454,34 +508,41 @@ class LLMSegmentorWithShape:
                 details = [f"path <{prop['path']}>"]
                 if prop["datatype"]:
                     details.append(f"datatype <{prop['datatype']}>")
+                hint = self._relation_hint(prop, context) if prop["class"] else None
                 if prop["class"]:
-                    details.append(f"relation to an instance of <{prop['class']}>, give a ref")
+                    details.append(f"relation to an instance of <{prop['class']}>: "
+                                   + (hint or "nothing in scope can be it, leave it out"))
                 if prop["min_count"] is not None:
                     details.append(f"min {prop['min_count']}")
                 if prop["max_count"] is not None:
                     details.append(f"max {prop['max_count']}")
                 lines.append(f"{line} ({', '.join(details)})")
-                lines += self._render_example(prop.get("example"), "        ")
+                if not prop["class"] or hint:
+                    lines += self._render_example(prop.get("example"), "        ", hint)
             lines.append("")
         return "\n".join(lines)
 
-    def fetch_related_entities(self, target_uri: str) -> List[str]:
+    def fetch_related_entities(self, target_uri: str) -> Dict[str, Optional[str]]:
         """
-        URIs of the existing entities related to the target, which new entities can refer to: found by the target's
-        related_entities query (a SPARQL pattern binding ?entity from ?target); none without one.
+        The existing entities related to the target, which new entities can refer to, by URI, with their label:
+        found by the target's related_entities query (a SPARQL pattern binding ?entity from ?target, and optionally a
+        ?label describing it to the LLM, e.g. a mandataris's name and role); none without one.
         """
         from helpers import query
         from escape_helpers import sparql_escape_uri
 
         if not self.related_entities:
-            return []
+            return {}
         q = (f"{self.prefixes}\n"
-             f"SELECT DISTINCT ?entity WHERE {{\n"
+             f"SELECT DISTINCT ?entity ?label WHERE {{\n"
              f"  VALUES ?target {{ {sparql_escape_uri(target_uri)} }}\n"
              f"  {self.related_entities}\n"
              f"}}")
-        bindings = query(q, sudo=True).get("results", {}).get("bindings", [])
-        return sorted({b["entity"]["value"] for b in bindings if b.get("entity", {}).get("type") == "uri"})
+        labels: Dict[str, Optional[str]] = {}
+        for b in query(q, sudo=True).get("results", {}).get("bindings", []):
+            if b.get("entity", {}).get("type") == "uri":
+                labels[b["entity"]["value"]] = labels.get(b["entity"]["value"]) or b.get("label", {}).get("value")
+        return labels
 
     def fetch_entities(self, uris: List[str]) -> Graph:
         """Fetch all triples of the given entities, from any graph, from the SPARQL endpoint."""
@@ -508,14 +569,16 @@ class LLMSegmentorWithShape:
                        datatype=URIRef(binding["datatype"]) if binding.get("datatype") else None)
 
     def _build_context(self, target_uri: Optional[str]) -> Dict[str, Any]:
-        """Existing entities related to the target (keys E1, E2, ...) with their types and known properties."""
-        uris = self.fetch_related_entities(target_uri) if target_uri else []
-        graph = self.fetch_entities(uris)
+        """Existing entities related to the target (keys E1, E2, ...) with their label, types and known properties."""
+        labels = self.fetch_related_entities(target_uri) if target_uri else {}
+        # In the order of their labels (e.g. names), which the LLM looks them up by; without one, by URI
+        labels = dict(sorted(labels.items(), key=lambda item: (" ".join((item[1] or "").split()).lower(), item[0])))
+        graph = self.fetch_entities(list(labels))
 
         entities = {}
-        for i, uri in enumerate(uris, start=1):
+        for i, (uri, label) in enumerate(labels.items(), start=1):
             types = {str(t) for t in graph.objects(URIRef(uri), RDF.type)}
-            entities[f"E{i}"] = {"uri": uri, "types": types}
+            entities[f"E{i}"] = {"uri": uri, "label": label, "types": types}
             if not types:
                 logger.warning(f"Related entity {uri} has no rdf:type in the triplestore")
         return {"graph": graph, "entities": entities}
@@ -531,14 +594,25 @@ class LLMSegmentorWithShape:
             logger.warning(f"Could not detect the language of the text: {e}")
             return None
 
+    # Above the list of existing entities: each one the document mentions is to be referred to
+    RELATED_RULE = ("Check each of the existing entities below for whether the document mentions it (e.g. by the "
+                    "name in its label), one by one, until the end of the list: every one it mentions is referred to "
+                    "by a relation of an occurrence.")
+
     def _render_context(self, context: Dict[str, Any]) -> str:
         if not context["entities"]:
             return ""
-        lines = ["", "    EXISTING ENTITIES"]
+        lines = ["", "    EXISTING ENTITIES",
+                 *textwrap.wrap(self.RELATED_RULE, width=self.RULE_WIDTH, initial_indent="    ",
+                                subsequent_indent="    "), ""]
         for key, entity in context["entities"].items():
             subject = URIRef(entity["uri"])
             lines.append(f"[{key}] <{entity['uri']}>")
+            if entity.get("label"):
+                lines.append(f"  Label: {' '.join(entity['label'].split())}")
             lines.append(f"  Types: {', '.join(f'<{t}>' for t in sorted(entity['types'])) or 'unknown'}")
+            if entity.get("label"):
+                continue  # the label describes it; its values would only bury the keys and labels in long lists
             known = []
             for p in sorted({p for p in context["graph"].predicates(subject) if p not in (RDF.type, self.MU_UUID)}, key=str):
                 values = [f"<{o}>" if isinstance(o, URIRef) else f'"{" ".join(str(o).split())[:60]}"'
@@ -609,7 +683,8 @@ class LLMSegmentorWithShape:
         """
         context = self._build_context(target)
         context["language"] = self._detect_language(text)
-        system_prompt = self.system_prompt + self._render_context(context)
+        system_prompt = (self._render_system_prompt() + self._render_shape_definitions(context)
+                         + self._render_context(context))
         best = None
         feedback = None
         usage = {"calls": 0, "input_tokens": 0, "output_tokens": 0}
@@ -623,7 +698,10 @@ class LLMSegmentorWithShape:
             segments = self._segments_from_answer(text, answer, unlocated, context)
             turtle = self.to_turtle(segments)
             try:
-                conforms, violations = self.validate(turtle, context["graph"], {s["uri"]: s["key"] for s in segments})
+                # The LLM knows entities by their keys (N1, E1, ...), not by their (minted) URIs
+                keys = {e["uri"]: key for key, e in context["entities"].items()}
+                keys.update({s["uri"]: s["key"] for s in segments})
+                conforms, violations = self.validate(turtle, context["graph"], keys)
             except Exception as e:
                 # The Turtle is generated here, so this points to a bug rather than the LLM's answer
                 logger.exception("Generated Turtle could not be parsed")
@@ -687,7 +765,8 @@ class LLMSegmentorWithShape:
                 "entity": self._describe_entity(output_graph, focus, keys or {}),
                 "path": str(path) if path is not None else None,
                 "constraint": self._value_of(report_graph, result, SH.sourceConstraintComponent),
-                "value": self._value_of(report_graph, result, SH.value),
+                "value": (keys or {}).get(self._value_of(report_graph, result, SH.value))
+                         or self._value_of(report_graph, result, SH.value),
                 "message": self._value_of(report_graph, result, SH.resultMessage),
                 "severity": self._value_of(report_graph, result, SH.resultSeverity),
             })
@@ -708,7 +787,8 @@ class LLMSegmentorWithShape:
         if definition is None:
             return f"{key} <{focus}>" if key else str(focus)
         prop_keys = {prop["path"]: prop["key"] for prop in definition["properties"]}
-        values = [f'{prop_keys.get(str(p), p)}="{" ".join(str(o).split())[:60]}"'
+        values = [f'{prop_keys.get(str(p), p)}='
+                  + (keys[str(o)] if str(o) in keys else f'"{" ".join(str(o).split())[:60]}"')
                   for p, o in data_graph.predicate_objects(focus)
                   if p not in (RDF.type, self.MU_UUID)]
         return (f"{key + ' ' if key else ''}{definition['key']} ({definition['name']})"
@@ -740,11 +820,13 @@ class LLMSegmentorWithShape:
         """Serialize the new entities: their type, mu:uuid, property values and relations."""
         blocks = []
         for segment in segments:
-            target_class = self.target_classes.get(segment["shape"])
+            target_class = segment.get("class") or self.target_classes.get(segment["shape"])
             statements = [f"a {URIRef(target_class).n3()}"] if target_class else []
             statements.append(f"{self.MU_UUID.n3()} {Literal(segment['uuid']).n3()}")
             for prop in segment["properties"]:
-                value = URIRef(prop["ref"]) if "ref" in prop else Literal(prop["text"], lang=prop.get("lang"))
+                value = (URIRef(prop["ref"]) if "ref" in prop else
+                         Literal(prop["value"], datatype=URIRef(prop["datatype"])) if "datatype" in prop else
+                         Literal(prop["text"], lang=prop.get("lang")))
                 statements.append(f"{URIRef(prop['path']).n3()} {value.n3()}")
             blocks.append(f"{URIRef(segment['uri']).n3()} " + " ;\n    ".join(statements) + " .")
         return "\n\n".join(blocks) + ("\n" if blocks else "")
@@ -822,7 +904,7 @@ class LLMSegmentorWithShape:
         if not self.numbered_parts:
             return segments
         merged: Dict[str, Dict[str, Any]] = {}  # sub-part URI -> parent
-        new = sorted(segments, key=lambda s: s["start"])
+        new = sorted((s for s in segments if s["shape"]), key=lambda s: s["start"])
         parents: Dict[str, Dict[str, Any]] = {}  # shape -> current parent
         for segment in new:
             label = self._numbered_label(segment["text"])
@@ -835,7 +917,7 @@ class LLMSegmentorWithShape:
                 parent["end"] = max(parent["end"], segment["end"])
                 parent["text"] = source[parent["start"]:parent["end"]]
                 for prop in parent["properties"]:
-                    if "ref" not in prop and prop["end"] == old_end:
+                    if "ref" not in prop and "value" not in prop and prop["end"] == old_end:
                         # e.g. a content that was only the heading "BESLIST:" now runs on without it
                         prop["start"], prop["end"] = self._without_heading_lines(source, prop["start"], parent["end"])
                         prop["text"] = source[prop["start"]:prop["end"]]
@@ -852,7 +934,7 @@ class LLMSegmentorWithShape:
 
     @staticmethod
     def _property_order(prop: Dict[str, Any]) -> tuple:
-        """Values in document order, relations last."""
+        """Values, and refs to existing entities by their mention, in document order; other relations last."""
         return prop.get("start") is None, prop.get("start") or 0, -(prop.get("end") or 0)
 
     def _redirect(self, segments: List[Dict[str, Any]], merged: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -871,17 +953,36 @@ class LLMSegmentorWithShape:
             segment["properties"] = properties
         return kept
 
+    def _placeholder(self, source: str, text: str, class_uri: str, occurrence: tuple[int, int],
+                     placeholders: Dict[tuple, Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """
+        A placeholder entity of the class for the passage that mentions it: one per distinct passage, so that a passage
+        referred to twice (e.g. the same document) is one entity. It has no properties, only its class and passage.
+        """
+        found = self._locate(source, text, *occurrence) or self._locate(source, text, 0, len(source))
+        if found is None:
+            return None
+        start, end = found
+        passage = " ".join(source[start:end].split())
+        if (class_uri, passage) not in placeholders:
+            uri, entity_uuid = self._mint_uri(class_uri)
+            placeholders[(class_uri, passage)] = {
+                "key": f"P{len(placeholders) + 1}", "shape": None, "class": class_uri, "uri": uri, "uuid": entity_uuid,
+                "text": source[start:end], "start": start, "end": end, "properties": []}
+            logger.info(f"Placeholder <{class_uri}> for {passage[:60]!r}")
+        return placeholders[(class_uri, passage)]
+
     def _unlinked(self, segments: List[Dict[str, Any]]) -> List[str]:
         """New entities that another returned entity could refer to through a relation property, but none does."""
         referenced = {prop["ref"] for segment in segments for prop in segment["properties"] if "ref" in prop}
         definitions = {d["uri"]: d for d in self.definitions}
         problems = []
         for segment in segments:
-            if segment["uri"] in referenced:
+            if segment["uri"] in referenced or not segment["shape"]:
                 continue
             classes = self._superclasses(self.target_classes.get(segment["shape"]) or "")
             candidates = [f"{owner['key']} via {prop['key']} ({prop['name']})"
-                          for owner in segments if owner is not segment
+                          for owner in segments if owner is not segment and owner["shape"]
                           for prop in definitions[owner["shape"]]["properties"] if prop["class"] in classes]
             if candidates:
                 problems.append(f"{segment['key']} is not referred to by any relation; it could be referred to by "
@@ -904,6 +1005,7 @@ class LLMSegmentorWithShape:
         by_key: Dict[str, Dict[str, Any]] = {}
         items = [dict(item) for item in result.get("segments", []) if isinstance(item, dict)]
         cursors: Dict[str, int] = {}
+        placeholders: Dict[tuple, Dict[str, Any]] = {}  # (class, passage) -> placeholder entity
 
         # First pass: the entities themselves, so that relations can refer to any of them
         resolved_items = []
@@ -941,7 +1043,7 @@ class LLMSegmentorWithShape:
 
         # Second pass: property values and relations
         for item, segment, shape_key in resolved_items:
-            # Values are inside their occurrence
+            # Values are looked for inside their occurrence first
             lo, hi = segment["start"], segment["end"]
             property_cursors: Dict[str, int] = {}
             properties = item.get("properties") or []
@@ -958,6 +1060,29 @@ class LLMSegmentorWithShape:
                 if self.properties_by_key[prop_key]["class"]:
                     ref = str(prop.get("ref") or "").strip()
                     relation_class = self.properties_by_key[prop_key]["class"]
+                    # A passage instead of a ref (also when the ref is not a key, e.g. "ref": "text")
+                    if (ref not in by_key and ref not in entities and prop.get("text")
+                            and self._takes_placeholder(self.properties_by_key[prop_key])):
+                        placeholder = self._placeholder(source, prop["text"], relation_class, (lo, hi), placeholders)
+                        if placeholder is None:
+                            problems.append(f"{segment['key']}, property {prop_key}: text not found verbatim in the "
+                                            f"document: {prop.get('text')!r}")
+                            continue
+                        if not any(s is placeholder for s in segments):
+                            segments.append(placeholder)
+                        segment["properties"].append({"path": prop_target["path"], "ref": placeholder["uri"]})
+                        continue
+                    if ref in by_key:
+                        hint = self._relation_hint(self.properties_by_key[prop_key], context) or "leave it out"
+                        referred_class = self.target_classes.get(by_key[ref]["shape"])
+                        if by_key[ref] is segment:
+                            problems.append(f"{segment['key']}, property {prop_key}: a relation never refers to the "
+                                            f"occurrence itself; {hint}")
+                            continue
+                        if referred_class and relation_class not in self._superclasses(referred_class):
+                            problems.append(f"{segment['key']}, property {prop_key}: {ref} is not an instance of "
+                                            f"<{relation_class}>; {hint}")
+                            continue
                     if ref in entities and not self._can_play(entities[ref]["types"], relation_class):
                         problems.append(f"{segment['key']}, property {prop_key}: existing entity {ref} is not an "
                                         f"instance of <{relation_class}>")
@@ -967,15 +1092,40 @@ class LLMSegmentorWithShape:
                         problems.append(f"{segment['key']}, property {prop_key}: relation needs a \"ref\" to an "
                                         f"occurrence id or existing entity key, got {prop.get('ref') or prop.get('text')!r}")
                         continue
+                    if ref in entities:
+                        # Where the document mentions the existing entity (asked for so that the LLM goes through the
+                        # document, mention by mention): inside the occurrence first, then anywhere. Not every entity
+                        # is mentioned by a name as such (e.g. a body as "de Gemeenteraad"), so the ref holds without
+                        mention = (self._locate(source, prop.get("text"), lo, hi)
+                                   or self._locate(source, prop.get("text"), 0, len(source)))
+                        if mention is None:
+                            logger.warning(f"{segment['key']}, property {prop_key}: no mention of {ref} found in the "
+                                           f"document: {prop.get('text')!r}")
+                            segment["properties"].append({"path": prop_target["path"], "ref": ref_uri})
+                            continue
+                        segment["properties"].append({"path": prop_target["path"], "ref": ref_uri,
+                                                      "text": source[mention[0]:mention[1]],
+                                                      "start": mention[0], "end": mention[1]})
+                        continue
                     segment["properties"].append({"path": prop_target["path"], "ref": ref_uri})
                     continue
 
-                prop_found = self._locate_from(source, prop.get("text"), property_cursors.get(prop_key, lo), lo, hi)
+                # Inside the occurrence first, then anywhere in the document (e.g. a location in a page footer)
+                prop_found = (self._locate_from(source, prop.get("text"), property_cursors.get(prop_key, lo), lo, hi)
+                              or self._locate(source, prop.get("text"), 0, len(source)))
                 if prop_found is None:
-                    where = f"inside {segment['key']} starting with {source[lo:lo + 60]!r}"
                     logger.warning(f"Could not locate {prop_key} of {segment['key']}: {str(prop.get('text'))[:80]!r}")
-                    problems.append(f"{segment['key']}, property {prop_key}: text not found verbatim {where}: {prop.get('text')!r}")
+                    problems.append(f"{segment['key']}, property {prop_key}: text not found verbatim in the document: "
+                                    f"{prop.get('text')!r}")
                     continue
+                datatype = self.properties_by_key[prop_key]["datatype"]
+                typed = datatype is not None and datatype not in self.STRING_DATATYPES
+                if typed:
+                    value = Literal(str(prop.get("value") or "").strip(), datatype=URIRef(datatype))
+                    if not str(value) or value.ill_typed:
+                        problems.append(f"{segment['key']}, property {prop_key}: needs a \"value\" in the form of "
+                                        f"<{datatype}>, got {prop.get('value')!r}")
+                        continue
                 prop_start, prop_end = self._without_heading_lines(source, *prop_found)
                 property_cursors[prop_key] = prop_end
                 segment["properties"].append({
@@ -983,7 +1133,8 @@ class LLMSegmentorWithShape:
                     "text": source[prop_start:prop_end],
                     "start": prop_start,
                     "end": prop_end,
-                    "lang": context.get("language") if self.properties_by_key[prop_key]["datatype"] == str(RDF.langString) else None,
+                    "lang": context.get("language") if datatype == str(RDF.langString) else None,
+                    **({"value": str(value), "datatype": datatype} if typed else {}),
                 })
 
             segment["properties"].sort(key=self._property_order)
