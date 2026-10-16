@@ -1,0 +1,197 @@
+
+    Find all STRUCTURES described in the system instructions in the document below
+    and return STRICT JSON as specified.
+
+    Document:
+    
+Uittreksel
+
+uit de notulen van de Gemeenteraad
+
+22 juni 2026
+
+Aanwezig:
+
+Lieve Vander Hauwert, voorzitter,
+Evelien De Both, burgemeester,
+Brecht Cassiman, Jenne De Potter, Marnic De Clercq, Lieselotte De Roover, Leen Goossens, schepenen,
+Peter Lagaert, schepen van rechtswege,
+Peter Roman, Cynthia Van den Steen, Evert De Smet, Heidi Schuddinck, Dieter Everaert, Kurt De Loor, 
+Louie Van Rijsselberge, Yana Giovanis, Filip Morre, Robin De Cubber, Liliane De Lange, 
+Geert Van Waeyenberge, Hans Van De Kerkhove, Nas De Spiegeleer, Katrien De Schampheleer, Nick Célis, 
+Jonah Penninck, Stijn De Bruycker, Hobbes Carnewal, Tom Machtelinckx, raadsleden,
+Sandra De Roeck, wnd. algemeen directeur
+
+Verontschuldigd:
+
+Leen Borremans, raadslid
+
+Afwezig:
+
+__________________________________________
+
+17. Verkeer. Aanvullend politiereglement op het verkeer. De invoering van een nieuwe 
+verkeerscirculatie in de Parkstraat en Grotstraat. Aanpassing.
+
+Bevoegd
+Jenne De Potter
+
+Bevoegdheid
+Artikel 40, §3 van het Decreet Lokaal Bestuur.
+
+Wetten en reglementen
+Het decreet van 16 mei 2008 betreffende de aanvullende reglementen op het wegverkeer en de plaatsing 
+en bekostiging van de verkeerstekens.
+
+Het Koninklijk Besluit van 16 maart 1968, betreffende de politie over het wegverkeer.
+
+Elektronisch ondertekend document, blz. 1 van 4. Verifieerbaar via code.esignflow.be met code 2446-1849-2518-2282
+
+
+
+Het Koninklijk Besluit van 1 december 1975 houdende algemeen reglement op de politie van het wegverkeer
+en van het gebruik van de openbare weg.
+
+Het Besluit van de Vlaamse Regering van 23 januari 2009 betreffende de aanvullende reglementen op het 
+wegverkeer en de plaatsing en bekostiging van de verkeerstekens.
+
+Het Ministerieel Besluit van 11 oktober 1976 waarbij de minimum afmetingen en de bijzondere 
+plaatsingsvoorwaarden van de verkeerstekens worden bepaald.
+
+De omzendbrief MOB/2009/01 van 3 april 2009.
+
+Verwijzingsdocumenten
+AP. 18 september 2023. Track changes.
+
+Verantwoording
+In 2023 werd er een aangepaste verkeerscirculatie ingevoerd in de Grotstraat en Parkstraat. De bussen 
+konden echter in twee richtingen blijven rijden in de Grotstraat, wat de verkeersveiligheid en de 
+doorstroming in deze drukke schoolomgeving niet ten goede kwam.
+
+Na de infrastructurele aanpassingen aan de hoek Parkstraat – Gentse Steenweg en een aantal vruchtbare 
+gesprekken met De Lijn, zijn zij bereid hun lijnvoering aan te passen. Hierdoor wordt de Grotstraat volledig 
+éénrichtingsverkeer, behalve voor fietsers en bromfietsers klasse A (BEV). Hierdoor zal lijn 251 van De Lijn 
+een lusje maken via de Parkstraat en wordt de halte Grotenberge Kerk verplaatst naar de Parkstraat. Ook lijn
+25 volgt een nieuwe route en rijdt niet langer via Grotenberge, maar via de Bijloke. Hierdoor wordt een 
+nieuwe halte voorzien in de Leenstraat.
+
+De aanpassing van het aanvullend politiereglement van 18 september 2023 zorgt voor de invoering van 
+deze wijzigingen.
+
+Stemmen
+Met algemene stemmen
+
+BESLIST:
+Artikel 1. Invoeren van éénrichtingsverkeer in de Grotstraat, uitgezonderd fietsers en bromfietsers klasse A.
+
+Artikel 1.1. Deze maatregel zal aangeduid worden door:
+
+ Het plaatsen van verkeersbord F19 + onderbord M5 in het begin van de Grotstraat (voorbij het 
+Xpunt met Parkstraat) en met leesrichting Gentse Steenweg.
+
+ Het plaatsen van verkeersbord F19 + onderbord M5 in de Grotstraat (voorbij het Xpunt met August 
+De Rouckstraat) en met leesrichting Gentse Steenweg.
+
+ Het plaatsen van verkeersbord C1 + onderbord M3 in het begin van de Grotstraat (voorbij het 
+Xpunt met Gentse Steenweg) en met leesrichting Grotenbergestraat.
+
+ Het plaatsen van verkeersbord C1 + onderbord M3 in de Grotstraat (voorbij het Xpunt met August 
+De Rouckstraat) en met leesrichting Grotenbergestraat.
+
+Elektronisch ondertekend document, blz. 2 van 4. Verifieerbaar via code.esignflow.be met code 2446-1849-2518-2282
+
+
+
+ Het plaatsen van verkeersbord C31b + onderbord M3 in de Gentse Steenweg (ter hoogte van het 
+Xpunt met Grotstraat) en met leesrichting Gentse Steenweg.
+
+ Het plaatsen van verkeersbord C31b + onderbord M3 in de August De Rouckstraat (ter hoogte van 
+het Xpunt met Grotstraat) en met leesrichting Grotstraat.
+
+ Het plaatsen van verkeersbord C31a + onderbord M3 in de Gentse Steenweg (ter hoogte van het 
+Xpunt met Leenstraat) en met leesrichting Gentse Steenweg.
+
+Artikel 2. Invoeren van éénrichtingsverkeer in de Parkstraat, uitgezonderd fietsers en bromfietsers klasse A.
+
+Artikel 2.1. Deze maatregel zal aangeduid worden door:
+
+ Het plaatsen van verkeersbord F19 + onderbord M5 in de Parkstraat (voorbij het Xpunt met Gentse 
+Steenweg) en met leesrichting Grotstraat.
+
+ Het plaatsen van verkeersbord F19 + onderbord M5 in de Parkstraat (voorbij de uitrit van parking 
+Park Van Breivelde) en met leesrichting Grotstraat.
+
+ Het plaatsen van verkeersbord C1 + onderbord M3 in de Parkstraat (voorbij het Xpunt met 
+Grotstraat) en met leesrichting Gentse Steenweg.
+
+ Het plaatsen van verkeersbord C1 + onderbord M3 in de Parkstraat (voorbij de uitrit van parking 
+Park Van Breivelde) en met leesrichting Gentse Steenweg.
+
+ Het plaatsen van verkeersbord C31b + M3 aan de uitrit van parking Park Van Breivelde, ter hoogte 
+van het Xpunt met Parkstraat.
+
+Artikel 3. Invoeren van geschrankt parkeren in de Parkstraat.
+
+Artikel 3.1. Deze maatregel zal aangeduid worden door:
+
+ Het plaatsen van de verkeersborden E1 + onderbord G Type Xa (begin) waar het parkeren niet 
+toegestaan is.
+
+ Het plaatsen van verkeersborden E9a + onderbord G Type Xa (begin) waar het parkeren wel 
+toegestaan is.
+
+ Het aanbrengen van markeringen die de parkeerstroken aanduiden.
+
+Artikel 4. Plaatsen van een verkeerseiland in de Parkstraat om te vermijden dat het éénrichtingsverkeer 
+wordt genegeerd.
+
+Artikel 4.1. Deze maatregel zal aangeduid worden door:
+
+ Het aanbrengen van een verdrijvingsvlak met plooibakens
+
+ Het aanbrengen van een fietssuggestiestrook naast het verdrijvingsvlak voor fietsers en 
+bromfietsers klasse A.
+
+Artikel 5. Invoeren van parkeerverbod in de Leenstraat.
+
+Artikel 5.1. Deze maatregel zal aangeduid worden door:
+
+ Het plaatsen van de verkeersborden E1 tussen de Gentse Steenweg en de bushalte (onpare kant).
+
+Elektronisch ondertekend document, blz. 3 van 4. Verifieerbaar via code.esignflow.be met code 2446-1849-2518-2282
+
+
+
+Artikel 6. Dit aanvullend reglement zal ter kennisgeving worden toegestuurd aan de Vlaamse Overheid, 
+Afdeling Beleid Mobiliteit en Verkeersveiligheid, Departement Mobiliteit en Openbare Werken, 
+Koning Albert II-laan 20 bus 2, 1000 Brussel.
+
+De Gemeenteraad
+
+getekend Sandra De Roeck getekend Lieve Vander Hauwert
+wnd. algemeen directeur voorzitter
+
+Voor eensluidend afschrift op 26 juni 2026
+
+Sandra De Roeck Lieve Vander Hauwert
+wnd. algemeen directeur voorzitter
+
+Elektronisch ondertekend document, blz. 4 van 4. Verifieerbaar via code.esignflow.be met code 2446-1849-2518-2282
+
+
+		Stad Zottegem
+	2026-06-29T09:27:52+0000
+	Stad Zottegem
+	Een rechtsgeldig digitaal getekend document afleveren.
+
+
+		Stad Zottegem
+	2026-06-29T10:22:19+0000
+	Stad Zottegem
+	Een rechtsgeldig digitaal getekend document afleveren.
+
+
+
+
+
+    

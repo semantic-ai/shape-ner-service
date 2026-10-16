@@ -1,0 +1,80 @@
+@prefix besluit: <http://data.vlaanderen.be/ns/besluit#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix nif: <http://persistence.uni-leipzig.org/nlp2rdf/ontologies/nif-core#> .
+@prefix ns1: <http://mu.semte.ch/vocabularies/ext/> .
+@prefix oa: <http://www.w3.org/ns/oa#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://example.org/task/SEGTC0002-zottegem-uittreksel-zitting> a prov:Activity ;
+    prov:generated [ a oa:Annotation ;
+            nif:confidence "1.0"^^xsd:float ;
+            oa:hasBody _:new5 ;
+            oa:hasTarget [ a oa:SpecificResource ;
+                    oa:hasSelector [ a oa:TextPositionSelector ;
+                            oa:end 7147 ;
+                            oa:start 1 ] ;
+                    oa:hasSource <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> ] ;
+            oa:motivatedBy oa:tagging ],
+        [ a oa:Annotation ;
+            nif:confidence "1.0"^^xsd:float ;
+            oa:hasBody _:new1 ;
+            oa:hasTarget [ a oa:SpecificResource ;
+                    oa:hasSelector [ a oa:TextPositionSelector ;
+                            oa:end 939 ;
+                            oa:start 791 ] ;
+                    oa:hasSource <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> ] ;
+            oa:motivatedBy oa:tagging ],
+        [ a oa:Annotation ;
+            nif:confidence "1.0"^^xsd:float ;
+            oa:hasBody [ a besluit:Zitting ;
+                    besluit:behandelt _:new1 ;
+                    besluit:geplandeStart "2026-06-22T00:00:00"^^xsd:dateTime ;
+                    besluit:heeftAanwezigeBijStart <http://data.lblod.info/id/mandatarissen/segtc0002-brecht-cassiman>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-cynthia-van-den-steen>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-dieter-everaert>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-evelien-de-both>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-evert-de-smet>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-filip-morre>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-geert-van-waeyenberge>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-hans-van-de-kerkhove>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-heidi-schuddinck>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-hobbes-carnewal>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-jenne-de-potter>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-jonah-penninck>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-katrien-de-schampheleer>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-kurt-de-loor>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-leen-goossens>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-lieselotte-de-roover>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-lieve-vander-hauwert-voorzitter>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-liliane-de-lange>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-louie-van-rijsselberge>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-marnic-de-clercq>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-nas-de-spiegeleer>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-nick-celis>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-peter-lagaert>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-peter-roman>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-robin-de-cubber>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-sandra-de-roeck>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-stijn-de-bruycker>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-tom-machtelinckx>,
+                        <http://data.lblod.info/id/mandatarissen/segtc0002-yana-giovanis> ;
+                    besluit:heeftNotulen _:new5 ;
+                    besluit:heeftSecretaris <http://data.lblod.info/id/mandatarissen/segtc0002-sandra-de-roeck> ;
+                    besluit:heeftVoorzitter <http://data.lblod.info/id/mandatarissen/segtc0002-lieve-vander-hauwert-voorzitter> ;
+                    besluit:isGehoudenDoor <http://data.lblod.info/id/bestuursorganen/8be6f67728e602e926b80f2a7baad4b03a5d9f67a435d5364596c5252d683004> ;
+                    ns1:heeftAfwezigeBijStart <http://data.lblod.info/id/mandatarissen/segtc0002-leen-borremans> ;
+                    prov:endedAtTime "2026-06-26T00:00:00"^^xsd:dateTime ;
+                    prov:startedAtTime "2026-06-22T00:00:00"^^xsd:dateTime ] ;
+            oa:hasTarget [ a oa:SpecificResource ;
+                    oa:hasSelector [ a oa:TextPositionSelector ;
+                            oa:end 789 ;
+                            oa:start 1 ] ;
+                    oa:hasSource <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> ] ;
+            oa:motivatedBy oa:tagging ] ;
+    prov:wasAssociatedWith <http://example.org/agent/entity-extraction> .
+
+_:new1 a besluit:Agendapunt .
+
+_:new5 a foaf:Document .
+

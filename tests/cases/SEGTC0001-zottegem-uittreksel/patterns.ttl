@@ -5,7 +5,7 @@
 @prefix prov: <http://www.w3.org/ns/prov#> .
 
 [] a test:Case ;
-    test:target "uittreksel" ;
+    test:config <http://lblod.data.gift/id/shape-ner/configs/uittreksel> ;
     test:count [ test:class besluit:Besluit ; test:number 1 ] ,
                [ test:class besluit:Artikel ; test:number 6 ] .
 

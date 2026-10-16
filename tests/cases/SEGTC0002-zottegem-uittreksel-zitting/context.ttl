@@ -1,0 +1,323 @@
+# Input: the existing entities related to the expression, as the target's related_entities query would find them
+# (see tests/support.py): the municipal council of Zottegem in the term from 2025 (bestuursorgaan in bestuursperiode)
+# and the mandatarissen holding its posts. A hand-written fixture: the bestuursorgaan and its two posts (gemeenteraadslid
+# and voorzitter) are real, the mandatarissen, persons and the director's post (URIs with segtc0002-) are not.
+@prefix besluit: <http://data.vlaanderen.be/ns/besluit#> .
+@prefix mandaat: <http://data.vlaanderen.be/ns/mandaat#> .
+@prefix org: <http://www.w3.org/ns/org#> .
+@prefix person: <http://www.w3.org/ns/person#> .
+@prefix persoon: <https://data.vlaanderen.be/ns/persoon#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://data.lblod.info/id/bestuursorganen/8be6f67728e602e926b80f2a7baad4b03a5d9f67a435d5364596c5252d683004> a besluit:Bestuursorgaan ;
+    rdfs:label "Gemeenteraad Zottegem, bestuursperiode vanaf 2025" ;
+    mandaat:bindingStart "2025-01-12T23:00:00Z"^^xsd:dateTime ;
+    org:hasPost <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb>, <http://data.lblod.info/id/mandaten/4eb327e29889de467c4cc2459399026208fcd8b40cad970806226bbbcce924bd> .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-lieve-vander-hauwert> a mandaat:Mandataris ;
+    rdfs:label "Lieve Vander Hauwert, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-lieve-vander-hauwert> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-evelien-de-both> a mandaat:Mandataris ;
+    rdfs:label "Evelien De Both, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-evelien-de-both> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-brecht-cassiman> a mandaat:Mandataris ;
+    rdfs:label "Brecht Cassiman, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-brecht-cassiman> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-jenne-de-potter> a mandaat:Mandataris ;
+    rdfs:label "Jenne De Potter, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-jenne-de-potter> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-marnic-de-clercq> a mandaat:Mandataris ;
+    rdfs:label "Marnic De Clercq, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-marnic-de-clercq> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-lieselotte-de-roover> a mandaat:Mandataris ;
+    rdfs:label "Lieselotte De Roover, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-lieselotte-de-roover> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-leen-goossens> a mandaat:Mandataris ;
+    rdfs:label "Leen Goossens, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-leen-goossens> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-peter-lagaert> a mandaat:Mandataris ;
+    rdfs:label "Peter Lagaert, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-peter-lagaert> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-peter-roman> a mandaat:Mandataris ;
+    rdfs:label "Peter Roman, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-peter-roman> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-cynthia-van-den-steen> a mandaat:Mandataris ;
+    rdfs:label "Cynthia Van den Steen, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-cynthia-van-den-steen> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-evert-de-smet> a mandaat:Mandataris ;
+    rdfs:label "Evert De Smet, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-evert-de-smet> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-heidi-schuddinck> a mandaat:Mandataris ;
+    rdfs:label "Heidi Schuddinck, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-heidi-schuddinck> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-dieter-everaert> a mandaat:Mandataris ;
+    rdfs:label "Dieter Everaert, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-dieter-everaert> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-kurt-de-loor> a mandaat:Mandataris ;
+    rdfs:label "Kurt De Loor, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-kurt-de-loor> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-louie-van-rijsselberge> a mandaat:Mandataris ;
+    rdfs:label "Louie Van Rijsselberge, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-louie-van-rijsselberge> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-yana-giovanis> a mandaat:Mandataris ;
+    rdfs:label "Yana Giovanis, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-yana-giovanis> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-filip-morre> a mandaat:Mandataris ;
+    rdfs:label "Filip Morre, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-filip-morre> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-robin-de-cubber> a mandaat:Mandataris ;
+    rdfs:label "Robin De Cubber, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-robin-de-cubber> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-liliane-de-lange> a mandaat:Mandataris ;
+    rdfs:label "Liliane De Lange, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-liliane-de-lange> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-geert-van-waeyenberge> a mandaat:Mandataris ;
+    rdfs:label "Geert Van Waeyenberge, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-geert-van-waeyenberge> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-hans-van-de-kerkhove> a mandaat:Mandataris ;
+    rdfs:label "Hans Van De Kerkhove, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-hans-van-de-kerkhove> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-nas-de-spiegeleer> a mandaat:Mandataris ;
+    rdfs:label "Nas De Spiegeleer, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-nas-de-spiegeleer> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-katrien-de-schampheleer> a mandaat:Mandataris ;
+    rdfs:label "Katrien De Schampheleer, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-katrien-de-schampheleer> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-nick-celis> a mandaat:Mandataris ;
+    rdfs:label "Nick Célis, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-nick-celis> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-jonah-penninck> a mandaat:Mandataris ;
+    rdfs:label "Jonah Penninck, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-jonah-penninck> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-stijn-de-bruycker> a mandaat:Mandataris ;
+    rdfs:label "Stijn De Bruycker, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-stijn-de-bruycker> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-hobbes-carnewal> a mandaat:Mandataris ;
+    rdfs:label "Hobbes Carnewal, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-hobbes-carnewal> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-tom-machtelinckx> a mandaat:Mandataris ;
+    rdfs:label "Tom Machtelinckx, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-tom-machtelinckx> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-leen-borremans> a mandaat:Mandataris ;
+    rdfs:label "Leen Borremans, gemeenteraadslid" ;
+    org:holds <http://data.lblod.info/id/mandaten/6145f0aa5b411cbaa988bc3afd2385c24a96ada277ba4e99826f5977a2d667bb> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-leen-borremans> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-lieve-vander-hauwert-voorzitter> a mandaat:Mandataris ;
+    rdfs:label "Lieve Vander Hauwert, voorzitter van de gemeenteraad" ;
+    org:holds <http://data.lblod.info/id/mandaten/4eb327e29889de467c4cc2459399026208fcd8b40cad970806226bbbcce924bd> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-lieve-vander-hauwert> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/mandatarissen/segtc0002-sandra-de-roeck> a mandaat:Mandataris ;
+    rdfs:label "Sandra De Roeck, waarnemend algemeen directeur" ;
+    org:holds <http://data.lblod.info/id/mandaten/segtc0002-algemeen-directeur> ;
+    mandaat:isBestuurlijkeAliasVan <http://data.lblod.info/id/personen/segtc0002-sandra-de-roeck> ;
+    mandaat:start "2025-01-13T00:00:00Z"^^xsd:dateTime .
+
+<http://data.lblod.info/id/personen/segtc0002-lieve-vander-hauwert> a person:Person ;
+    persoon:gebruikteVoornaam "Lieve" ;
+    foaf:familyName "Vander Hauwert" .
+
+<http://data.lblod.info/id/personen/segtc0002-evelien-de-both> a person:Person ;
+    persoon:gebruikteVoornaam "Evelien" ;
+    foaf:familyName "De Both" .
+
+<http://data.lblod.info/id/personen/segtc0002-brecht-cassiman> a person:Person ;
+    persoon:gebruikteVoornaam "Brecht" ;
+    foaf:familyName "Cassiman" .
+
+<http://data.lblod.info/id/personen/segtc0002-jenne-de-potter> a person:Person ;
+    persoon:gebruikteVoornaam "Jenne" ;
+    foaf:familyName "De Potter" .
+
+<http://data.lblod.info/id/personen/segtc0002-marnic-de-clercq> a person:Person ;
+    persoon:gebruikteVoornaam "Marnic" ;
+    foaf:familyName "De Clercq" .
+
+<http://data.lblod.info/id/personen/segtc0002-lieselotte-de-roover> a person:Person ;
+    persoon:gebruikteVoornaam "Lieselotte" ;
+    foaf:familyName "De Roover" .
+
+<http://data.lblod.info/id/personen/segtc0002-leen-goossens> a person:Person ;
+    persoon:gebruikteVoornaam "Leen" ;
+    foaf:familyName "Goossens" .
+
+<http://data.lblod.info/id/personen/segtc0002-peter-lagaert> a person:Person ;
+    persoon:gebruikteVoornaam "Peter" ;
+    foaf:familyName "Lagaert" .
+
+<http://data.lblod.info/id/personen/segtc0002-peter-roman> a person:Person ;
+    persoon:gebruikteVoornaam "Peter" ;
+    foaf:familyName "Roman" .
+
+<http://data.lblod.info/id/personen/segtc0002-cynthia-van-den-steen> a person:Person ;
+    persoon:gebruikteVoornaam "Cynthia" ;
+    foaf:familyName "Van den Steen" .
+
+<http://data.lblod.info/id/personen/segtc0002-evert-de-smet> a person:Person ;
+    persoon:gebruikteVoornaam "Evert" ;
+    foaf:familyName "De Smet" .
+
+<http://data.lblod.info/id/personen/segtc0002-heidi-schuddinck> a person:Person ;
+    persoon:gebruikteVoornaam "Heidi" ;
+    foaf:familyName "Schuddinck" .
+
+<http://data.lblod.info/id/personen/segtc0002-dieter-everaert> a person:Person ;
+    persoon:gebruikteVoornaam "Dieter" ;
+    foaf:familyName "Everaert" .
+
+<http://data.lblod.info/id/personen/segtc0002-kurt-de-loor> a person:Person ;
+    persoon:gebruikteVoornaam "Kurt" ;
+    foaf:familyName "De Loor" .
+
+<http://data.lblod.info/id/personen/segtc0002-louie-van-rijsselberge> a person:Person ;
+    persoon:gebruikteVoornaam "Louie" ;
+    foaf:familyName "Van Rijsselberge" .
+
+<http://data.lblod.info/id/personen/segtc0002-yana-giovanis> a person:Person ;
+    persoon:gebruikteVoornaam "Yana" ;
+    foaf:familyName "Giovanis" .
+
+<http://data.lblod.info/id/personen/segtc0002-filip-morre> a person:Person ;
+    persoon:gebruikteVoornaam "Filip" ;
+    foaf:familyName "Morre" .
+
+<http://data.lblod.info/id/personen/segtc0002-robin-de-cubber> a person:Person ;
+    persoon:gebruikteVoornaam "Robin" ;
+    foaf:familyName "De Cubber" .
+
+<http://data.lblod.info/id/personen/segtc0002-liliane-de-lange> a person:Person ;
+    persoon:gebruikteVoornaam "Liliane" ;
+    foaf:familyName "De Lange" .
+
+<http://data.lblod.info/id/personen/segtc0002-geert-van-waeyenberge> a person:Person ;
+    persoon:gebruikteVoornaam "Geert" ;
+    foaf:familyName "Van Waeyenberge" .
+
+<http://data.lblod.info/id/personen/segtc0002-hans-van-de-kerkhove> a person:Person ;
+    persoon:gebruikteVoornaam "Hans" ;
+    foaf:familyName "Van De Kerkhove" .
+
+<http://data.lblod.info/id/personen/segtc0002-nas-de-spiegeleer> a person:Person ;
+    persoon:gebruikteVoornaam "Nas" ;
+    foaf:familyName "De Spiegeleer" .
+
+<http://data.lblod.info/id/personen/segtc0002-katrien-de-schampheleer> a person:Person ;
+    persoon:gebruikteVoornaam "Katrien" ;
+    foaf:familyName "De Schampheleer" .
+
+<http://data.lblod.info/id/personen/segtc0002-nick-celis> a person:Person ;
+    persoon:gebruikteVoornaam "Nick" ;
+    foaf:familyName "Célis" .
+
+<http://data.lblod.info/id/personen/segtc0002-jonah-penninck> a person:Person ;
+    persoon:gebruikteVoornaam "Jonah" ;
+    foaf:familyName "Penninck" .
+
+<http://data.lblod.info/id/personen/segtc0002-stijn-de-bruycker> a person:Person ;
+    persoon:gebruikteVoornaam "Stijn" ;
+    foaf:familyName "De Bruycker" .
+
+<http://data.lblod.info/id/personen/segtc0002-hobbes-carnewal> a person:Person ;
+    persoon:gebruikteVoornaam "Hobbes" ;
+    foaf:familyName "Carnewal" .
+
+<http://data.lblod.info/id/personen/segtc0002-tom-machtelinckx> a person:Person ;
+    persoon:gebruikteVoornaam "Tom" ;
+    foaf:familyName "Machtelinckx" .
+
+<http://data.lblod.info/id/personen/segtc0002-leen-borremans> a person:Person ;
+    persoon:gebruikteVoornaam "Leen" ;
+    foaf:familyName "Borremans" .
+
+<http://data.lblod.info/id/personen/segtc0002-sandra-de-roeck> a person:Person ;
+    persoon:gebruikteVoornaam "Sandra" ;
+    foaf:familyName "De Roeck" .

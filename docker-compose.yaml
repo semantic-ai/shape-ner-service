@@ -41,7 +41,7 @@ services:
     restart: no
     volumes:
       - ./:/app
-      - ./config.json:/config/config.json:ro
+      - ./config:/config:ro
       - ./docker-compose.yaml:/tmp/docker-compose.yaml
 
 networks:
