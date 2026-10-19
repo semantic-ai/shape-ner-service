@@ -1,4 +1,6 @@
 # SHACL shapes for notulen, from https://github.com/lblod/lib-decision-shapes/blob/master/src/shapes/notulen.ts
+# Extended locally: the session's people (present and absent at its start, chair, secretary) are relations to
+# mandatarissen (sh:class mandaat:Mandataris), so a session links to existing ones.
 @prefix sh:      <http://www.w3.org/ns/shacl#> .
 @prefix qb:      <http://purl.org/linked-data/cube#> .
 @prefix lblodBesluit:	<http://lblod.data.gift/vocabularies/besluit/> .
@@ -143,6 +145,7 @@
         lblodBesluit:maturiteitsniveau "Niveau 3" ;
         sh:description "Een mandataris (van het bestuursorsgaan die de zitting hield) die aanwezig was bij de start van de zitting." ;
         sh:path <http://data.vlaanderen.be/ns/besluit#heeftAanwezigeBijStart> ;
+        sh:class <http://data.vlaanderen.be/ns/mandaat#Mandataris> ;
         sh:minCount 0 ;
 		lblodBesluit:usageNote '13'
     ] ;
@@ -150,6 +153,7 @@
         sh:name "heeftAfwezigeBijStart" ;
         sh:description "Een mandataris (van het bestuursorsgaan die de zitting hield) die afwezig was bij de start van de zitting." ;
         sh:path <http://mu.semte.ch/vocabularies/ext/heeftAfwezigeBijStart> ;
+        sh:class <http://data.vlaanderen.be/ns/mandaat#Mandataris> ;
         sh:minCount 0 ;
 		lblodBesluit:usageNote '14'
     ] ;
@@ -158,6 +162,7 @@
         lblodBesluit:maturiteitsniveau "Niveau 3" ;
         sh:description "De mandataris die de rol als voorzitter heeft gedurende de zitting." ;
         sh:path <http://data.vlaanderen.be/ns/besluit#heeftVoorzitter> ;
+        sh:class <http://data.vlaanderen.be/ns/mandaat#Mandataris> ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
 		lblodBesluit:usageNote '15'
@@ -167,6 +172,7 @@
         lblodBesluit:maturiteitsniveau "Niveau 3" ;
         sh:description "De mandataris die de rol van secretaris heeft gedurende de zitting." ;
         sh:path <http://data.vlaanderen.be/ns/besluit#heeftSecretaris> ;
+        sh:class <http://data.vlaanderen.be/ns/mandaat#Mandataris> ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
 		lblodBesluit:usageNote '16'

@@ -8,8 +8,13 @@
 
     TASK
     - Find every occurrence of each structure in the document.
-    - For each occurrence, also find the value of each of its properties that is
-      present inside that occurrence.
+    - For each occurrence, also find the value of each of its properties: inside
+      that occurrence, or elsewhere in the document when it is only there (e.g.
+      a location in a page footer).
+    - A value belongs to the occurrence it describes. A value, such as a date,
+      of something that is not one of the STRUCTURES (e.g. the document itself,
+      like the date of a certified copy) is left out: never put it on an
+      occurrence instead.
     - Only use the keys listed under STRUCTURES and EXISTING ENTITIES. Omit
       structures and properties that are absent; never invent content.
     - Cardinalities (min/max) are only a suggestion: omit a property when its
@@ -37,19 +42,26 @@
       entity: give its key in "ref" ("N..." id of an occurrence or "E..." key of
       an existing entity) instead of a span.
     - The relation is given on the occurrence that has the property.
+    - A ref to an existing entity also gets the span where the document
+      mentions it (e.g. a person's name as written), see SPANS. Go through the
+      document and give a ref for every mention of an existing entity.
     - Always give every relation the document supports from the occurrences you
       return, to each other and to existing entities.
+    - Leave a relation out when what it refers to is neither an occurrence of
+      one of the STRUCTURES nor one of the EXISTING ENTITIES (e.g. a document
+      that is not in scope): never refer to another occurrence, or to the
+      occurrence itself, instead.
 
     SPANS
     - The document is presented with a number on every line, e.g. "  15| ".
-      Give every span (an occurrence or a property value) as "start" and
-      "end": the numbers of the lines it runs from and to, both included.
+      Give every span (an occurrence, a property value or a mention) as
+      "start" and "end": the numbers of the lines it runs from and to, both
+      included.
     - Every span also has "first" and "last": a few words copied verbatim from
       the document at the start and at the end of the span, without the line
       numbers; for a one-word span they are the same word. Copy them character
       for character: no paraphrasing, translation, summarizing, normalization
       or added punctuation.
-    - A property value's lines lie inside its occurrence's lines.
     - An occurrence includes all of its content: every line, list, bullet point
       and continuation (also across page breaks), up to where the next part of
       the document starts, such as the next occurrence. Do not stop after the
@@ -70,6 +82,10 @@
     - A span covers everything between its first and its last line, including
       page headers, footers and page numbers that interrupt the content: those
       lines belong to the span.
+    - A property with a datatype other than a string (e.g. a date, a date and
+      time, or a number) also gets "value": the value in the form of that
+      datatype, e.g. 2026-06-22 for a date and 2026-06-22T19:00:00 for a date and
+      time. Its span is still the text the value is read from.
 
     OUTPUT CONTRACT
     Respond with STRICT JSON only, no markdown fences or commentary, exactly:
@@ -78,7 +94,11 @@
        "first": "...", "last": "...",
        "properties": [{"property": "<property key>", "start": 12, "end": 13,
                        "first": "...", "last": "..."},
-                      {"property": "<relation property key>", "ref": "<N or E key>"}]}
+                      {"property": "<typed property key>", "start": 14, "end": 14,
+                       "first": "...", "last": "...", "value": "..."},
+                      {"property": "<relation property key>", "ref": "<N key>"},
+                      {"property": "<relation property key>", "ref": "<E key>",
+                       "start": 15, "end": 15, "first": "...", "last": "..."}]}
     ]}
     Every new occurrence has a unique "id" (N1, N2, ...). List new occurrences in
     document order. Return {"segments": []} if nothing is found.
@@ -102,8 +122,8 @@
         Example (hidden metadata, not visible text): 2025-12-31
     [S1.P3] citeeropschrift: De beknopte titel of officiële korte naam van een decreet, wet, besluit... Deze wordt officieel vastgelegd. Deze benaming wordt in de praktijk gebruikt om naar de rechtsgrond te verwijzen. (path <http://data.europa.eu/eli/ontology#title_short>, datatype <http://www.w3.org/2001/XMLSchema#string>, min 0, max 1)
         Example: Aanvullende belasting op de personenbelasting voor 2024 -2025
-    [S1.P4] heeftDeel: Duidt een artikel aan van dit besluit. (path <http://data.europa.eu/eli/ontology#has_part>, relation to an instance of <http://data.vlaanderen.be/ns/besluit#Artikel>, give a ref, min 0)
-        Example of the S2 occurrence it refers to (give its "ref"): Artikel 1 Voor de aanslagjaren 2024 en 2025 wordt een aanvullende belasting gevestigd ten laste van de rijksinwoners die belastbaar zijn in de gemeente op 1 januari van het aanslagjaar.
+    [S1.P4] heeftDeel: Duidt een artikel aan van dit besluit. (path <http://data.europa.eu/eli/ontology#has_part>, relation to an instance of <http://data.vlaanderen.be/ns/besluit#Artikel>: give the "ref" of an S2 occurrence, min 0)
+        Example of what it refers to (give the "ref" of an S2 occurrence): Artikel 1 Voor de aanslagjaren 2024 en 2025 wordt een aanvullende belasting gevestigd ten laste van de rijksinwoners die belastbaar zijn in de gemeente op 1 januari van het aanslagjaar.
     [S1.P5] inhoud: De beschrijving van de beoogde rechtsgevolgen, het zogenaamde beschikkend gedeelte. (path <http://www.w3.org/ns/prov#value>, min 1, max 1)
         Example: Artikel 1 Voor de aanslagjaren 2024 en 2025 wordt een aanvullende belasting gevestigd ten laste van de rijksinwoners die belastbaar zijn in de gemeente op 1 januari van het aanslagjaar. Artikel 2 De belasting wordt vastgesteld op 7,9 % van de overeenkomstig artikel 466 van het Wetboek van de inkomstenbelastingen 1992 berekende grondslag voor hetzelfde aanslagjaar. Deze belasting wordt gevestigd op…
     [S1.P6] inwerkingtreding: De datum waarop de regelgeving van kracht wordt. (path <http://data.europa.eu/eli/ontology#first_date_entry_in_force>, datatype <http://www.w3.org/2001/XMLSchema#date>, min 0, max 1)
@@ -114,8 +134,7 @@
         Example (hidden metadata, not visible text): 2024-01-12
     [S1.P9] titel: Titel van de legale verschijningsvorm. (path <http://data.europa.eu/eli/ontology#title>, datatype <http://www.w3.org/2001/XMLSchema#string>, min 1)
         Example: 8/2. Aanvullende belasting op de personenbelasting voor 2024 -2025
-    [S1.P10] volgtUit: De behandeling van het agendapunt die tot dit besluit heeft geleid. (path <http://www.w3.org/ns/prov#wasGeneratedBy>, relation to an instance of <http://data.vlaanderen.be/ns/besluit#BehandelingVanAgendapunt>, give a ref, min 1, max 1)
-        Example (hidden metadata, not visible text): <http://data.lblod.info/id/behandelingen-van-agendapunten/659537278AAC56EB1455CBD8>
+    [S1.P10] volgtUit: De behandeling van het agendapunt die tot dit besluit heeft geleid. (path <http://www.w3.org/ns/prov#wasGeneratedBy>, relation to an instance of <http://data.vlaanderen.be/ns/besluit#BehandelingVanAgendapunt>: nothing in scope can be it, leave it out, min 1, max 1)
 
 [S2] Artikel (instance of <http://data.vlaanderen.be/ns/besluit#Artikel>)
   Example, with its properties marked [key] ... [/key]: Artikel [S2.P2] 1 [/S2.P2] [S2.P1] Voor de aanslagjaren 2024 en 2025 wordt een aanvullende belasting gevestigd ten laste van de rijksinwoners die belastbaar zijn in de gemeente op 1 januari van het aanslagjaar. [/S2.P1]

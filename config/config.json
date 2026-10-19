@@ -1,0 +1,56 @@
+{
+  "segmentation": {
+    "llm": {
+      "provider": "mistralai",
+      "model_name": "mistral-medium-3.5",
+      "base_url": "https://api.mistral.ai/v1",
+      "temperature": 0.1
+    },
+    "targets": {
+      "uittreksel": {
+        "uri": "http://lblod.data.gift/id/shape-ner/configs/uittreksel",
+        "label": "Uittreksel expressions",
+        "prefixes": "PREFIX eli: <http://data.europa.eu/eli/ontology#>",
+        "target_filter": "?target a eli:Expression .",
+        "text_predicate": "https://data.europarl.europa.eu/def/epvoc#expressionContent",
+        "shape_path": "/config/shapes/notulen-shape.ttl",
+        "node_shapes": [
+          "https://data.vlaanderen.be/shacl/besluit-publicatie#BesluitShape",
+          "https://data.vlaanderen.be/shacl/besluit-publicatie#ArtikelShape"
+        ],
+        "html_example_path": "/config/examples/notulen-example.html",
+        "ontologies": [
+          "https://data.vlaanderen.be/ns/besluit",
+          "http://data.europa.eu/eli/ontology"
+        ],
+        "usage_note_predicate": "http://lblod.data.gift/vocabularies/besluit/usageNote",
+        "numbered_parts": true,
+        "prompt_rules": [
+          "One occurrence holds all of its properties: never split it into several occurrences of the same structure, e.g. at a heading between two of its properties."
+        ]
+      },
+      "uittreksel-zitting": {
+        "uri": "http://lblod.data.gift/id/shape-ner/configs/uittreksel-zitting",
+        "label": "Session of uittreksel expressions",
+        "prefixes": "PREFIX eli: <http://data.europa.eu/eli/ontology#>",
+        "target_filter": "?target a eli:Expression .",
+        "text_predicate": "https://data.europarl.europa.eu/def/epvoc#expressionContent",
+        "shape_path": "/config/shapes/notulen-shape.ttl",
+        "node_shapes": [
+          "https://data.vlaanderen.be/shacl/besluit-publicatie#ZittingShape"
+        ],
+        "html_example_path": "/config/examples/notulen-example.html",
+        "ontologies": [
+          "https://data.vlaanderen.be/ns/besluit",
+          "https://data.vlaanderen.be/ns/mandaat",
+          "http://data.europa.eu/eli/ontology"
+        ],
+        "usage_note_predicate": "http://lblod.data.gift/vocabularies/besluit/usageNote",
+        "placeholders": true,
+        "prompt_rules": [
+          "An uittreksel is an extract of the minutes of one session: it has exactly one occurrence of the session, which starts with the header (the date, who was present and who was excused). The agenda item, the decision and the signatures at the end belong to that session, never to a session of their own. The date of the certified copy (\"Voor eensluidend afschrift op ...\") is a date of the document, not of the session."
+        ]
+      }
+    }
+  }
+}

@@ -52,9 +52,9 @@ def run(request, report_lines: list[str]) -> SimpleNamespace:
 
 
 def new_by_shape(run) -> dict[str, list[dict]]:
-    """New entities per node shape, in document order."""
+    """New entities per node shape, in document order; placeholders (no node shape) are left out."""
     shapes: dict[str, list[dict]] = {}
-    for segment in sorted(run.result["segments"], key=lambda s: s["start"]):
+    for segment in sorted((s for s in run.result["segments"] if s["shape"]), key=lambda s: s["start"]):
         shapes.setdefault(segment["shape"], []).append(segment)
     return shapes
 
@@ -89,9 +89,8 @@ def test_texts_point_to_the_source_text(run):
         for prop in segment["properties"]:
             if "ref" in prop:
                 continue
+            # A value is usually inside its occurrence, but can be elsewhere (e.g. a location in a page footer)
             assert text[prop["start"]:prop["end"]] == prop["text"]
-            assert segment["start"] <= prop["start"] <= prop["end"] <= segment["end"], \
-                f"{prop['path']} of {segment['key']} lies outside it"
 
 
 def test_occurrences_of_a_structure_do_not_overlap(run):
@@ -138,14 +137,14 @@ def test_the_input_is_not_an_entity(run):
 
 def test_new_entities_have_a_minted_uri_and_uuid(run):
     uuids = []
-    for segments in new_by_shape(run).values():
-        for segment in segments:
-            target_class = run.segmentor.target_classes.get(segment["shape"]) or segment["shape"]
-            class_name = re.split(r"[#/]", target_class.rstrip("#/"))[-1].lower()
-            assert segment["uri"] == run.segmentor.URI_TEMPLATE.format(class_name=class_name, uuid=uuid.UUID(segment["uuid"]))
-            assert (URIRef(segment["uri"]), RDF.type, URIRef(target_class)) in run.graph
-            assert str(run.graph.value(URIRef(segment["uri"]), run.segmentor.MU_UUID)) == segment["uuid"]
-            uuids.append(segment["uuid"])
+    for segment in run.result["segments"]:
+        # An occurrence of a structure, or a placeholder of a relation's class
+        target_class = segment.get("class") or run.segmentor.target_classes.get(segment["shape"])
+        class_name = re.split(r"[#/]", target_class.rstrip("#/"))[-1].lower()
+        assert segment["uri"] == run.segmentor.URI_TEMPLATE.format(class_name=class_name, uuid=uuid.UUID(segment["uuid"]))
+        assert (URIRef(segment["uri"]), RDF.type, URIRef(target_class)) in run.graph
+        assert str(run.graph.value(URIRef(segment["uri"]), run.segmentor.MU_UUID)) == segment["uuid"]
+        uuids.append(segment["uuid"])
     assert len(set(uuids)) == len(uuids)
 
 
