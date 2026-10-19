@@ -40,10 +40,10 @@
     RELATIONS
     - A property marked as a relation refers to another occurrence or existing
       entity: give its key in "ref" ("N..." id of an occurrence or "E..." key of
-      an existing entity) instead of "text".
+      an existing entity) instead of a span.
     - The relation is given on the occurrence that has the property.
-    - A ref to an existing entity also gets "text": where the document mentions
-      it, copied verbatim (e.g. a person's name as written). Go through the
+    - A ref to an existing entity also gets the span where the document
+      mentions it (e.g. a person's name as written), see SPANS. Go through the
       document and give a ref for every mention of an existing entity.
     - Always give every relation the document supports from the occurrences you
       return, to each other and to existing entities.
@@ -52,11 +52,16 @@
       that is not in scope): never refer to another occurrence, or to the
       occurrence itself, instead.
 
-    COPYING TEXT
-    - "text": the complete text of the occurrence or property value, copied
-      verbatim from the document.
-    - Copy character for character: no paraphrasing, translation, summarizing,
-      normalization or added punctuation.
+    SPANS
+    - The document is presented with a number on every line, e.g. "  15| ".
+      Give every span (an occurrence, a property value or a mention) as
+      "start" and "end": the numbers of the lines it runs from and to, both
+      included.
+    - Every span also has "first" and "last": a few words copied verbatim from
+      the document at the start and at the end of the span, without the line
+      numbers; for a one-word span they are the same word. Copy them character
+      for character: no paraphrasing, translation, summarizing, normalization
+      or added punctuation.
     - An occurrence includes all of its content: every line, list, bullet point
       and continuation (also across page breaks), up to where the next part of
       the document starts, such as the next occurrence. Do not stop after the
@@ -74,25 +79,38 @@
       properties.
     - Occurrences of different structures are always returned separately, also
       when one contains the other.
-    - Copy everything between the start and the end of the text, including page
-      headers, footers and page numbers that interrupt it: the text must be one
-      contiguous piece of the document.
+    - A span covers everything between its first and its last line, including
+      page headers, footers and page numbers that interrupt the content: those
+      lines belong to the span.
     - A property with a datatype other than a string (e.g. a date, a date and
       time, or a number) also gets "value": the value in the form of that
       datatype, e.g. 2026-06-22 for a date and 2026-06-22T19:00:00 for a date and
-      time. Its "text" is still the text the value is read from, copied verbatim.
+      time. Its span is still the text the value is read from.
 
     OUTPUT CONTRACT
     Respond with STRICT JSON only, no markdown fences or commentary, exactly:
     {"segments": [
-      {"id": "N1", "shape": "<structure key>", "text": "...",
-       "properties": [{"property": "<property key>", "text": "..."},
-                      {"property": "<typed property key>", "text": "...", "value": "..."},
+      {"id": "N1", "shape": "<structure key>", "start": 12, "end": 40,
+       "first": "...", "last": "...",
+       "properties": [{"property": "<property key>", "start": 12, "end": 13,
+                       "first": "...", "last": "..."},
+                      {"property": "<typed property key>", "start": 14, "end": 14,
+                       "first": "...", "last": "...", "value": "..."},
                       {"property": "<relation property key>", "ref": "<N key>"},
-                      {"property": "<relation property key>", "ref": "<E key>", "text": "..."}]}
+                      {"property": "<relation property key>", "ref": "<E key>",
+                       "start": 15, "end": 15, "first": "...", "last": "..."}]}
     ]}
     Every new occurrence has a unique "id" (N1, N2, ...). List new occurrences in
     document order. Return {"segments": []} if nothing is found.
+
+    For example, the line
+  15| Artikel 1. Invoeren van éénrichtingsverkeer.
+    is returned as:
+    {"id": "N1", "shape": "S2", "start": 15, "end": 15, "first": "Artikel 1.",
+     "last": "éénrichtingsverkeer.", "properties": [
+      {"property": "S2.P2", "start": 15, "end": 15, "first": "1", "last": "1"},
+      {"property": "S2.P1", "start": 15, "end": 15, "first": "Invoeren",
+       "last": "éénrichtingsverkeer."}]}
 
     STRUCTURES
     [S1] Besluit (instance of <http://data.vlaanderen.be/ns/besluit#Besluit>)

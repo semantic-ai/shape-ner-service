@@ -106,7 +106,7 @@ class TargetConfig(BaseModel):
     )
     prompt_rules: list[str] = Field(
         default=[],
-        description="Rules on how the target's documents are divided, added to the prompt's rules on copying text, "
+        description="Rules on how the target's documents are divided, added to the prompt's rules on spans, "
                     "e.g. that an occurrence is never split at a heading"
     )
     numbered_parts: bool = Field(

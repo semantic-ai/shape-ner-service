@@ -46,7 +46,10 @@
           "http://data.europa.eu/eli/ontology"
         ],
         "usage_note_predicate": "http://lblod.data.gift/vocabularies/besluit/usageNote",
-        "placeholders": true
+        "placeholders": true,
+        "prompt_rules": [
+          "An uittreksel is an extract of the minutes of one session: it has exactly one occurrence of the session, which starts with the header (the date, who was present and who was excused). The agenda item, the decision and the signatures at the end belong to that session, never to a session of their own. The date of the certified copy (\"Voor eensluidend afschrift op ...\") is a date of the document, not of the session."
+        ]
       }
     }
   }

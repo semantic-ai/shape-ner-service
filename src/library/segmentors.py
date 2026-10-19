@@ -16,8 +16,9 @@ from bs4 import BeautifulSoup
 from .LLMAnalyzer import LLMAnalyzer
 
 
-# Shape-driven LLM segmentor: what to look for is read from a SHACL shape, the LLM only returns
-# the verbatim text it found and the character offsets are located deterministically in the source text.
+# Shape-driven LLM segmentor: what to look for is read from a SHACL shape, the LLM only returns the lines each
+# finding runs from and to with the words at their start and end, and the character offsets are resolved
+# deterministically in the source text.
 class LLMSegmentorWithShape:
     """
     Segmentor using LLMAnalyzer, driven by a SHACL shape.
@@ -25,7 +26,9 @@ class LLMSegmentorWithShape:
     Every selected sh:NodeShape (and its sh:property shapes) is described to the LLM, together with the existing
     entities related to the target (see the target's related_entities). Every occurrence the LLM finds in the text is
     a new entity, linked to the other new entities, and to the existing ones, through the shape's own properties. The
-    existing entities themselves are never changed.
+    existing entities themselves are never changed. The document is presented numbered line by line: the LLM answers
+    with, per occurrence and property value, the 1-based lines the span runs from and to with a few verbatim words at
+    its start and end, which segment_and_validate() resolves to exact character offsets in the text.
 
     segment_and_validate() returns, besides the validation, the Turtle of the new entities:
         <new entity> a <sh:targetClass> ;
@@ -84,10 +87,10 @@ class LLMSegmentorWithShape:
     RELATIONS
     - A property marked as a relation refers to another occurrence or existing
       entity: give its key in "ref" ("N..." id of an occurrence or "E..." key of
-      an existing entity) instead of "text".
+      an existing entity) instead of a span.
     - The relation is given on the occurrence that has the property.
-    - A ref to an existing entity also gets "text": where the document mentions
-      it, copied verbatim (e.g. a person's name as written). Go through the
+    - A ref to an existing entity also gets the span where the document
+      mentions it (e.g. a person's name as written), see SPANS. Go through the
       document and give a ref for every mention of an existing entity.
     - Always give every relation the document supports from the occurrences you
       return, to each other and to existing entities.
@@ -96,11 +99,16 @@ class LLMSegmentorWithShape:
       that is not in scope): never refer to another occurrence, or to the
       occurrence itself, instead.
 
-    COPYING TEXT
-    - "text": the complete text of the occurrence or property value, copied
-      verbatim from the document.
-    - Copy character for character: no paraphrasing, translation, summarizing,
-      normalization or added punctuation.
+    SPANS
+    - The document is presented with a number on every line, e.g. "  15| ".
+      Give every span (an occurrence, a property value or a mention) as
+      "start" and "end": the numbers of the lines it runs from and to, both
+      included.
+    - Every span also has "first" and "last": a few words copied verbatim from
+      the document at the start and at the end of the span, without the line
+      numbers; for a one-word span they are the same word. Copy them character
+      for character: no paraphrasing, translation, summarizing, normalization
+      or added punctuation.
     - An occurrence includes all of its content: every line, list, bullet point
       and continuation (also across page breaks), up to where the next part of
       the document starts, such as the next occurrence. Do not stop after the
@@ -108,32 +116,45 @@ class LLMSegmentorWithShape:
 <TARGET RULES>
     - Occurrences of different structures are always returned separately, also
       when one contains the other.
-    - Copy everything between the start and the end of the text, including page
-      headers, footers and page numbers that interrupt it: the text must be one
-      contiguous piece of the document.
+    - A span covers everything between its first and its last line, including
+      page headers, footers and page numbers that interrupt the content: those
+      lines belong to the span.
     - A property with a datatype other than a string (e.g. a date, a date and
       time, or a number) also gets "value": the value in the form of that
       datatype, e.g. 2026-06-22 for a date and 2026-06-22T19:00:00 for a date and
-      time. Its "text" is still the text the value is read from, copied verbatim.
+      time. Its span is still the text the value is read from.
 
     OUTPUT CONTRACT
     Respond with STRICT JSON only, no markdown fences or commentary, exactly:
     {"segments": [
-      {"id": "N1", "shape": "<structure key>", "text": "...",
-       "properties": [{"property": "<property key>", "text": "..."},
-                      {"property": "<typed property key>", "text": "...", "value": "..."},
+      {"id": "N1", "shape": "<structure key>", "start": 12, "end": 40,
+       "first": "...", "last": "...",
+       "properties": [{"property": "<property key>", "start": 12, "end": 13,
+                       "first": "...", "last": "..."},
+                      {"property": "<typed property key>", "start": 14, "end": 14,
+                       "first": "...", "last": "...", "value": "..."},
                       {"property": "<relation property key>", "ref": "<N key>"},
-                      {"property": "<relation property key>", "ref": "<E key>", "text": "..."}]}
+                      {"property": "<relation property key>", "ref": "<E key>",
+                       "start": 15, "end": 15, "first": "...", "last": "..."}<PLACEHOLDER CONTRACT>]}
     ]}
     Every new occurrence has a unique "id" (N1, N2, ...). List new occurrences in
     document order. Return {"segments": []} if nothing is found.
+
+    For example, the line
+  15| Artikel 1. Invoeren van éénrichtingsverkeer.
+    is returned as:
+    {"id": "N1", "shape": "S2", "start": 15, "end": 15, "first": "Artikel 1.",
+     "last": "éénrichtingsverkeer.", "properties": [
+      {"property": "S2.P2", "start": 15, "end": 15, "first": "1", "last": "1"},
+      {"property": "S2.P1", "start": 15, "end": 15, "first": "Invoeren",
+       "last": "éénrichtingsverkeer."}]}
 
     STRUCTURES
     """
 
     USER_PROMPT_TEMPLATE = """
-    Find all STRUCTURES described in the system instructions in the document below
-    and return STRICT JSON as specified.
+    Find all STRUCTURES described in the system instructions in the numbered document
+    below and return STRICT JSON as specified.
 
     Document:
     {text}
@@ -144,8 +165,9 @@ class LLMSegmentorWithShape:
     Your previous answer was converted to RDF and validated against the SHACL shape.
     Correct the problems below where the document supports it. Keep every occurrence
     that was correct: do not drop occurrences to avoid problems, and never invent
-    content that is not in the document. Texts that could not be found must be
-    copied again, character for character, from the document.
+    content that is not in the document. Correct the line numbers of the spans the
+    problems point at, and copy their first and last words again, verbatim from the
+    document.
 
     Previous answer:
     {previous_answer}
@@ -184,8 +206,6 @@ class LLMSegmentorWithShape:
     OCCURRENCE_EXAMPLE_MAX_LENGTH = 2000
     # Language tag for rdf:langString values; detected from the text when None
     LANGUAGE: Optional[str] = None
-    # Text the LLM may leave out between two lines it copied, e.g. a page footer
-    MAX_SKIPPED_CHARS = 300
     # Relative paths in the target are resolved against the project root
     PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -251,13 +271,17 @@ class LLMSegmentorWithShape:
     # For a target with placeholders: relations to what is not one of the structures (see _placeholder)
     PLACEHOLDER_RULE = ("Unlike other relations, a relation that says \"give ... the text that mentions it\" can "
                         "refer to something that is not one of the STRUCTURES: give the \"ref\" of an existing entity "
-                        "when it says so and it is one of them, otherwise \"text\": the passage of the document that "
-                        "mentions it (e.g. the name of a document), which becomes an entity of its own. Only when the "
-                        "document mentions it, and never the occurrence itself.")
+                        "when it says so and it is one of them, otherwise the span of the passage of the document that "
+                        "mentions it (e.g. the name of a document), without \"ref\", which becomes an entity of its "
+                        "own. Only when the document mentions it, and never the occurrence itself.")
+    # In the output contract of a target with placeholders: a relation given as the span of a passage, without "ref"
+    PLACEHOLDER_CONTRACT = ("<PLACEHOLDER CONTRACT>",
+                            ',\n                      {"property": "<relation property key>", "start": 20, "end": 20,'
+                            '\n                       "first": "...", "last": "..."}')
 
     def _render_system_prompt(self) -> str:
         """
-        The system prompt with, among the rules on copying text, the heading rule, the numbered parts rule (for a target
+        The system prompt with, among the rules on spans, the heading rule, the numbered parts rule (for a target
         with numbered_parts) and the target's own rules.
         """
         rules = [self.HEADING_RULE.format(max_words=self.HEADING_MAX_WORDS),
@@ -266,7 +290,9 @@ class LLMSegmentorWithShape:
                  *self.prompt_rules]
         rules = "".join(textwrap.fill(rule, width=self.RULE_WIDTH, initial_indent="    - ", subsequent_indent="      ")
                         + "\n" for rule in rules)
-        return self.SYSTEM_PROMPT.replace(self.TARGET_RULES, rules)
+        marker, placeholder_contract = self.PLACEHOLDER_CONTRACT
+        return (self.SYSTEM_PROMPT.replace(self.TARGET_RULES, rules)
+                .replace(marker, placeholder_contract if self.placeholders else ""))
 
     def _resolve(self, path: str) -> Path:
         return Path(path) if Path(path).is_absolute() else self.PROJECT_ROOT / path
@@ -482,7 +508,7 @@ class LLMSegmentorWithShape:
         if any(self._can_play(entity["types"], prop["class"]) for entity in (context or {}).get("entities", {}).values()):
             options.append("the \"ref\" of an existing entity of that class")
         if self._takes_placeholder(prop):
-            options.append("the text that mentions it")
+            options.append("the span of the text that mentions it")
         return "give " + " or ".join(options) if options else None
 
     def _render_shape_definitions(self, context: Optional[Dict[str, Any]] = None) -> str:
@@ -623,57 +649,115 @@ class LLMSegmentorWithShape:
                 lines += known
         return "\n".join(lines) + "\n"
 
-    # Locating the LLM's text in the source text
-    def _locate(self, text: str, found_text: Any, lo: int, hi: int) -> Optional[tuple[int, int]]:
-        """Return (start, end) of found_text within text[lo:hi], ignoring whitespace differences (LLMs tend to collapse newlines)."""
-        if not isinstance(found_text, str) or not found_text.split():
-            return None
-        match = self._pattern(found_text).search(text, lo, hi)
-        if match:
-            return match.start(), match.end()
-        return self._locate_lines(text, found_text, lo, hi)
+    # Indexing the document: every line numbered, so the LLM can give a span as the lines it runs from and to with
+    # the words at its start and end, which _resolve_span resolves back to exact character offsets
+    def _index_document(self, text: str) -> tuple[str, List[int], str]:
+        """
+        The document as the LLM sees it: every line rendered with its 1-based number, truncated at the last line
+        boundary <= TEXT_LIMIT so no partial line is ever indexed. Returns (rendered, line_offsets, source): the
+        numbered document for the prompt, the start offset of every line in source (line_offsets[n - 1] is where
+        line n starts), and the exact text the LLM saw, which the offsets and the resolved spans refer to.
+        """
+        source = text[:self.TEXT_LIMIT]
+        if len(source) < len(text) and "\n" in source:
+            source = source[:source.rfind("\n") + 1]
+        lines = source.split("\n")
+        if source.endswith("\n"):
+            lines.pop()  # the final newline ends the last line: there is no empty line after it
+        line_offsets = []
+        offset = 0
+        for line in lines:
+            line_offsets.append(offset)
+            offset += len(line) + 1
+        rendered = "\n".join(f"{number:>4}| {line}" for number, line in enumerate(lines, start=1))
+        return rendered, line_offsets, source
 
+    def _resolve_span(self, index: tuple[str, List[int], str], span: Dict[str, Any], key: str) -> tuple[int, int] | str:
+        """
+        The (start, end) character offsets in the source text of a span the LLM gave as the 1-based line numbers it
+        runs from and to ("start", "end"), with the verbatim words at its start and end ("first", "last"): the lines
+        are sliced, and the anchors are matched in the first and last non-blank line of the range (leftmost and
+        rightmost), which pins the span down exactly and checks the line numbers. A problem, phrased with the key
+        the LLM knows the span by, when the line numbers and anchors do not pin it down.
+        """
+        _, line_offsets, source = index
+        span = span if isinstance(span, dict) else {}
+        count = len(line_offsets)
+        # The last line's text ends before the newline that ends it
+        document_end = len(source) - (1 if source.endswith("\n") else 0)
+
+        def line_bounds(number: int) -> tuple[int, int]:
+            """The bounds of a numbered line's text in source, without the newline that ends it."""
+            return line_offsets[number - 1], (line_offsets[number] - 1 if number < count else document_end)
+
+        def line_text(number: int) -> str:
+            lo, hi = line_bounds(number)
+            return source[lo:hi]
+
+        start, end = self._line_number(span.get("start")), self._line_number(span.get("end"))
+        if start is None or end is None:
+            return (f"{key}: \"start\" and \"end\" must be the numbers of the lines the span runs from and to, "
+                    f"got {span.get('start')!r} and {span.get('end')!r}")
+        if not 1 <= start <= count or not 1 <= end <= count:
+            return f"{key}: lines {start} to {end} are outside the document: it has {count} numbered lines"
+        if start > end:
+            return f"{key}: lines {start} to {end} are reversed: \"start\" must not come after \"end\""
+
+        non_blank = [number for number in range(start, end + 1) if line_text(number).strip()]
+        if not non_blank:
+            return f"{key}: lines {start} to {end} are blank: the span has no text"
+        first_line, last_line = non_blank[0], non_blank[-1]
+        first, last = span.get("first"), span.get("last")
+        if not isinstance(first, str) or not first.split() or not isinstance(last, str) or not last.split():
+            return (f"{key}: \"first\" and \"last\" must be a few verbatim words from the start and the end of the "
+                    f"span, got {first!r} and {last!r}")
+
+        first_lo, first_hi = line_bounds(first_line)
+        first_match = self._pattern(first).search(source, first_lo, first_hi)
+        last_lo, last_hi = line_bounds(last_line)
+        # The anchor ends the span: its rightmost match in the line
+        last_matches = list(self._pattern(last).finditer(source, last_lo, last_hi))
+        if first_match is None:
+            return (f"{key}: the span does not start with {first!r}: line {first_line} of the range reads "
+                    f"{' '.join(source[first_lo:first_hi].split())[:60]!r}")
+        if not last_matches:
+            return (f"{key}: the span does not end with {last!r}: line {last_line} of the range reads "
+                    f"{' '.join(source[last_lo:last_hi].split())[:60]!r}")
+        # search() and finditer() report their matches at their absolute offsets in the source text
+        start_offset, end_offset = first_match.start(), last_matches[-1].end()
+        # The span must actually run from the first anchor to the last: anchors that overlap the wrong way around
+        # would resolve to a span that does not start with "first" or does not end with "last"
+        if first_match.end() > end_offset or last_matches[-1].start() < start_offset:
+            return f"{key}: \"first\" {first!r} does not come before \"last\" {last!r} in line {first_line}"
+        return start_offset, end_offset
+
+    def _line_number(self, value: Any) -> Optional[int]:
+        """A line number as an int (a numeric string or a whole number is coerced), or None when it is not one."""
+        if isinstance(value, int) and not isinstance(value, bool):
+            return value
+        if isinstance(value, float) and value.is_integer():
+            return int(value)
+        if isinstance(value, str):
+            try:
+                return int(value.strip())
+            except ValueError:
+                return None
+        return None
+
+    # The words of an anchor, matched tolerantly: whitespace in them matches any run of whitespace (LLMs copy
+    # line breaks inconsistently), and a non-ASCII symbol matches any symbol
     def _pattern(self, found_text: str) -> re.Pattern:
         return re.compile(r"\s+".join(self._token_pattern(token) for token in found_text.split()))
-
-    def _locate_lines(self, text: str, found_text: str, lo: int, hi: int) -> Optional[tuple[int, int]]:
-        """
-        Fallback when found_text is not one contiguous piece of the text: its lines in order, with at most
-        max_skipped_chars of left-out text between two lines (e.g. a page footer). The span runs from the first to
-        the last line, so the left-out text is part of it.
-        """
-        lines = [line for line in found_text.split("\n") if line.strip()]
-        if len(lines) < 2:
-            return None
-        patterns = [self._pattern(line) for line in lines]
-        for first in patterns[0].finditer(text, lo, hi):
-            end = first.end()
-            for pattern in patterns[1:]:
-                match = pattern.search(text, end, hi)
-                if match is None or len("".join(text[end:match.start()].split())) > self.MAX_SKIPPED_CHARS:
-                    break
-                end = match.end()
-            else:
-                logger.info(f"Located text with left-out lines: {' '.join(text[first.start():end].split())[:60]!r}...")
-                return first.start(), end
-        return None
 
     def _token_pattern(self, token: str) -> str:
         """Exact characters, except that a non-ASCII symbol (e.g. a bullet "•") matches any single symbol."""
         return "".join(r"[^\w\s]" if ord(c) > 127 and not unicodedata.category(c).startswith(("L", "N")) else re.escape(c)
                        for c in token)
 
-    def _locate_from(self, text: str, found_text: Any, cursor: int, lo: int, hi: int) -> Optional[tuple[int, int]]:
-        """Locate after the cursor first (document order, repeated phrases), then anywhere in range."""
-        found = self._locate(text, found_text, max(cursor, lo), hi)
-        if found is None and cursor > lo:
-            found = self._locate(text, found_text, lo, hi)
-        return found
-
     def segment_and_validate(self, text: str, task: Any = None, target: Optional[str] = None) -> Dict[str, Any]:
         """
         Segment, serialize to Turtle and validate against the SHACL shape. While the result does not
-        conform or has texts that cannot be found, ask the LLM again with its previous answer and
+        conform or has spans that cannot be resolved, ask the LLM again with its previous answer and
         the problems, up to max_attempts. Returns the attempt with the fewest problems per entity:
             {'turtle': str, 'segments': [...], 'conforms': bool, 'violations': [...],
              'unlocated': [...], 'attempts': int,
@@ -683,19 +767,22 @@ class LLMSegmentorWithShape:
         """
         context = self._build_context(target)
         context["language"] = self._detect_language(text)
-        system_prompt = (self._render_system_prompt() + self._render_shape_definitions(context)
-                         + self._render_context(context))
+        system_prompt = self.system_prompt + self._render_context(context)
+        # The document as the LLM sees it: numbered lines, truncated at a line boundary. _index_document is
+        # deterministic, so one index serves every attempt: the prompt and the span resolution see the same text,
+        # and the resolved offsets refer to exactly it.
+        index = self._index_document(text)
         best = None
         feedback = None
         usage = {"calls": 0, "input_tokens": 0, "output_tokens": 0}
         for attempt in range(1, self.MAX_ATTEMPTS + 1):
-            answer = self._ask(text, task=task, feedback=feedback, system_prompt=system_prompt)
+            answer = self._ask(index[0], task=task, feedback=feedback, system_prompt=system_prompt)
             tokens = getattr(self.analyzer.last_response, "usage_metadata", None) or {}
             usage["calls"] += 1
             usage["input_tokens"] += tokens.get("input_tokens", 0) or 0
             usage["output_tokens"] += tokens.get("output_tokens", 0) or 0
             unlocated: List[str] = []
-            segments = self._segments_from_answer(text, answer, unlocated, context)
+            segments = self._segments_from_answer(index, answer, unlocated, context)
             turtle = self.to_turtle(segments)
             try:
                 # The LLM knows entities by their keys (N1, E1, ...), not by their (minted) URIs
@@ -831,7 +918,7 @@ class LLMSegmentorWithShape:
             blocks.append(f"{URIRef(segment['uri']).n3()} " + " ;\n    ".join(statements) + " .")
         return "\n\n".join(blocks) + ("\n" if blocks else "")
 
-    def _ask(self, text: str, task: Any = None, feedback: Optional[str] = None, system_prompt: Optional[str] = None) -> Dict[str, Any]:
+    def _ask(self, document: str, task: Any = None, feedback: Optional[str] = None, system_prompt: Optional[str] = None) -> Dict[str, Any]:
         logger.info(f"Running shape-driven LLM segmentation with {self.analyzer.model_name}...")
 
         # Attach the current task so the analyzer logs the AI call (see record_llm_call).
@@ -839,13 +926,14 @@ class LLMSegmentorWithShape:
 
         try:
             result = self.analyzer.analyze_single_entry(
-                text=text,
+                text=document,
                 system_prompt=system_prompt or self.system_prompt,
                 # The template is str.format()-ed with the text, so braces in the feedback are escaped
                 user_prompt_template=self.USER_PROMPT_TEMPLATE + (
                     feedback.replace("{", "{{").replace("}", "}}") if feedback else ""),
                 expected_schema=self.RESULTS_SCHEMA,
-                text_limit=self.TEXT_LIMIT,
+                # The document is already exactly the text the resolved offsets refer to
+                text_limit=None,
             )
         except Exception as e:
             logger.exception("Shape-driven LLM segmentation failed")
@@ -953,16 +1041,17 @@ class LLMSegmentorWithShape:
             segment["properties"] = properties
         return kept
 
-    def _placeholder(self, source: str, text: str, class_uri: str, occurrence: tuple[int, int],
-                     placeholders: Dict[tuple, Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    @staticmethod
+    def _has_span(prop: Dict[str, Any]) -> bool:
+        """The LLM gave (part of) a span: line numbers or anchors."""
+        return any(prop.get(field) not in (None, "") for field in ("start", "end", "first", "last"))
+
+    def _placeholder(self, source: str, start: int, end: int, class_uri: str,
+                     placeholders: Dict[tuple, Dict[str, Any]]) -> Dict[str, Any]:
         """
         A placeholder entity of the class for the passage that mentions it: one per distinct passage, so that a passage
         referred to twice (e.g. the same document) is one entity. It has no properties, only its class and passage.
         """
-        found = self._locate(source, text, *occurrence) or self._locate(source, text, 0, len(source))
-        if found is None:
-            return None
-        start, end = found
         passage = " ".join(source[start:end].split())
         if (class_uri, passage) not in placeholders:
             uri, entity_uuid = self._mint_uri(class_uri)
@@ -989,22 +1078,22 @@ class LLMSegmentorWithShape:
                                 f"{', '.join(candidates)}")
         return problems
 
-    def _segments_from_answer(self, text: str, result: Dict[str, Any], problems: Optional[List[str]] = None,
+    def _segments_from_answer(self, index: tuple[str, List[int], str], result: Dict[str, Any],
+                              problems: Optional[List[str]] = None,
                               context: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """
-        Build the new entities from the LLM's answer: locate the texts of the occurrences in the source text, and
-        resolve relation refs to occurrences and existing entities. Anything that cannot be resolved is added to
+        Build the new entities from the LLM's answer: resolve the span of every occurrence and property value (the
+        lines it runs from and to, with its first and last words) to exact offsets in the source text the LLM saw,
+        and resolve relation refs to occurrences and existing entities. Anything that cannot be resolved is added to
         problems.
         """
         problems = problems if problems is not None else []
         context = context or {"graph": Graph(), "entities": {}}
         entities = context["entities"]
-        # Offsets must refer to exactly the text the LLM saw
-        source = text[:self.TEXT_LIMIT]
+        _, _, source = index
         segments: List[Dict[str, Any]] = []
         by_key: Dict[str, Dict[str, Any]] = {}
         items = [dict(item) for item in result.get("segments", []) if isinstance(item, dict)]
-        cursors: Dict[str, int] = {}
         placeholders: Dict[tuple, Dict[str, Any]] = {}  # (class, passage) -> placeholder entity
 
         # First pass: the entities themselves, so that relations can refer to any of them
@@ -1023,29 +1112,26 @@ class LLMSegmentorWithShape:
                                 f"refer to it from an occurrence with \"ref\" instead")
                 continue
 
-            found = self._locate_from(source, item.get("text"), cursors.get(shape_key, 0), 0, len(source))
-            if found is None:
-                logger.warning(f"Could not locate {shape_key} in source: {str(item.get('text'))[:80]!r}")
-                problems.append(f"{shape_key}: text not found verbatim in the document: {item.get('text')!r}")
+            occurrence_key = str(item.get("id") or "").strip() or f"N?{len(segments) + 1}"
+            found = self._resolve_span(index, item, occurrence_key)
+            if isinstance(found, str):
+                logger.warning(f"Could not resolve {occurrence_key} ({shape_key}): {found}")
+                problems.append(found)
                 continue
             start, end = found
-            cursors[shape_key] = end
-            uri, entity_uuid = self._mint_uri(target["shape"])
-            occurrence_key = str(item.get("id") or "").strip() or f"N?{len(segments) + 1}"
             if occurrence_key in by_key or occurrence_key in entities:
                 problems.append(f"id {occurrence_key!r} is used more than once")
                 occurrence_key = f"{occurrence_key}?{len(segments) + 1}"
+            uri, entity_uuid = self._mint_uri(target["shape"])
             segment = {"key": occurrence_key, "shape": target["shape"], "uri": uri, "uuid": entity_uuid,
                        "text": source[start:end], "start": start, "end": end, "properties": []}
             by_key[occurrence_key] = segment
             segments.append(segment)
             resolved_items.append((item, segment, shape_key))
 
-        # Second pass: property values and relations
+        # Second pass: property values and relations. A value is usually inside its occurrence, but can be elsewhere in
+        # the document when it is only there (e.g. a location in a page footer)
         for item, segment, shape_key in resolved_items:
-            # Values are looked for inside their occurrence first
-            lo, hi = segment["start"], segment["end"]
-            property_cursors: Dict[str, int] = {}
             properties = item.get("properties") or []
             for prop in properties if isinstance(properties, list) else []:
                 if not isinstance(prop, dict):
@@ -1060,14 +1146,15 @@ class LLMSegmentorWithShape:
                 if self.properties_by_key[prop_key]["class"]:
                     ref = str(prop.get("ref") or "").strip()
                     relation_class = self.properties_by_key[prop_key]["class"]
-                    # A passage instead of a ref (also when the ref is not a key, e.g. "ref": "text")
-                    if (ref not in by_key and ref not in entities and prop.get("text")
+                    # The span of a passage instead of a ref (also when the ref is not a key, e.g. "ref": "span")
+                    if (ref not in by_key and ref not in entities and self._has_span(prop)
                             and self._takes_placeholder(self.properties_by_key[prop_key])):
-                        placeholder = self._placeholder(source, prop["text"], relation_class, (lo, hi), placeholders)
-                        if placeholder is None:
-                            problems.append(f"{segment['key']}, property {prop_key}: text not found verbatim in the "
-                                            f"document: {prop.get('text')!r}")
+                        found = self._resolve_span(index, prop, f"{segment['key']}, property {prop_key}")
+                        if isinstance(found, str):
+                            logger.warning(f"Could not resolve the passage of {prop_key} of {segment['key']}: {found}")
+                            problems.append(found)
                             continue
+                        placeholder = self._placeholder(source, *found, relation_class, placeholders)
                         if not any(s is placeholder for s in segments):
                             segments.append(placeholder)
                         segment["properties"].append({"path": prop_target["path"], "ref": placeholder["uri"]})
@@ -1090,17 +1177,15 @@ class LLMSegmentorWithShape:
                     ref_uri = by_key[ref]["uri"] if ref in by_key else entities[ref]["uri"] if ref in entities else None
                     if ref_uri is None:
                         problems.append(f"{segment['key']}, property {prop_key}: relation needs a \"ref\" to an "
-                                        f"occurrence id or existing entity key, got {prop.get('ref') or prop.get('text')!r}")
+                                        f"occurrence id or existing entity key, got {prop.get('ref')!r}")
                         continue
                     if ref in entities:
                         # Where the document mentions the existing entity (asked for so that the LLM goes through the
-                        # document, mention by mention): inside the occurrence first, then anywhere. Not every entity
-                        # is mentioned by a name as such (e.g. a body as "de Gemeenteraad"), so the ref holds without
-                        mention = (self._locate(source, prop.get("text"), lo, hi)
-                                   or self._locate(source, prop.get("text"), 0, len(source)))
-                        if mention is None:
-                            logger.warning(f"{segment['key']}, property {prop_key}: no mention of {ref} found in the "
-                                           f"document: {prop.get('text')!r}")
+                        # document, mention by mention). Not every entity is mentioned by a name as such (e.g. a body
+                        # as "de Gemeenteraad"), so the ref holds without
+                        mention = self._resolve_span(index, prop, f"{segment['key']}, property {prop_key}")
+                        if isinstance(mention, str):
+                            logger.warning(f"No mention of {ref} for {prop_key} of {segment['key']}: {mention}")
                             segment["properties"].append({"path": prop_target["path"], "ref": ref_uri})
                             continue
                         segment["properties"].append({"path": prop_target["path"], "ref": ref_uri,
@@ -1110,13 +1195,10 @@ class LLMSegmentorWithShape:
                     segment["properties"].append({"path": prop_target["path"], "ref": ref_uri})
                     continue
 
-                # Inside the occurrence first, then anywhere in the document (e.g. a location in a page footer)
-                prop_found = (self._locate_from(source, prop.get("text"), property_cursors.get(prop_key, lo), lo, hi)
-                              or self._locate(source, prop.get("text"), 0, len(source)))
-                if prop_found is None:
-                    logger.warning(f"Could not locate {prop_key} of {segment['key']}: {str(prop.get('text'))[:80]!r}")
-                    problems.append(f"{segment['key']}, property {prop_key}: text not found verbatim in the document: "
-                                    f"{prop.get('text')!r}")
+                found = self._resolve_span(index, prop, f"{segment['key']}, property {prop_key}")
+                if isinstance(found, str):
+                    logger.warning(f"Could not resolve {prop_key} of {segment['key']}: {found}")
+                    problems.append(found)
                     continue
                 datatype = self.properties_by_key[prop_key]["datatype"]
                 typed = datatype is not None and datatype not in self.STRING_DATATYPES
@@ -1126,8 +1208,7 @@ class LLMSegmentorWithShape:
                         problems.append(f"{segment['key']}, property {prop_key}: needs a \"value\" in the form of "
                                         f"<{datatype}>, got {prop.get('value')!r}")
                         continue
-                prop_start, prop_end = self._without_heading_lines(source, *prop_found)
-                property_cursors[prop_key] = prop_end
+                prop_start, prop_end = self._without_heading_lines(source, *found)
                 segment["properties"].append({
                     "path": prop_target["path"],
                     "text": source[prop_start:prop_end],
@@ -1144,5 +1225,5 @@ class LLMSegmentorWithShape:
 
         # In document order
         segments.sort(key=lambda s: (s["start"], -s["end"]))
-        logger.info(f"Located {len(segments)} shape segments")
+        logger.info(f"Resolved {len(segments)} shape segments")
         return segments

@@ -9,19 +9,10 @@
 <http://example.org/task/SEGTC0002-zottegem-uittreksel-zitting> a prov:Activity ;
     prov:generated [ a oa:Annotation ;
             nif:confidence "1.0"^^xsd:float ;
-            oa:hasBody _:new5 ;
-            oa:hasTarget [ a oa:SpecificResource ;
-                    oa:hasSelector [ a oa:TextPositionSelector ;
-                            oa:end 7147 ;
-                            oa:start 1 ] ;
-                    oa:hasSource <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> ] ;
-            oa:motivatedBy oa:tagging ],
-        [ a oa:Annotation ;
-            nif:confidence "1.0"^^xsd:float ;
             oa:hasBody _:new1 ;
             oa:hasTarget [ a oa:SpecificResource ;
                     oa:hasSelector [ a oa:TextPositionSelector ;
-                            oa:end 939 ;
+                            oa:end 1536 ;
                             oa:start 791 ] ;
                     oa:hasSource <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> ] ;
             oa:motivatedBy oa:tagging ],
@@ -29,7 +20,6 @@
             nif:confidence "1.0"^^xsd:float ;
             oa:hasBody [ a besluit:Zitting ;
                     besluit:behandelt _:new1 ;
-                    besluit:geplandeStart "2026-06-22T00:00:00"^^xsd:dateTime ;
                     besluit:heeftAanwezigeBijStart <http://data.lblod.info/id/mandatarissen/segtc0002-brecht-cassiman>,
                         <http://data.lblod.info/id/mandatarissen/segtc0002-cynthia-van-den-steen>,
                         <http://data.lblod.info/id/mandatarissen/segtc0002-dieter-everaert>,
@@ -64,11 +54,20 @@
                     besluit:heeftVoorzitter <http://data.lblod.info/id/mandatarissen/segtc0002-lieve-vander-hauwert-voorzitter> ;
                     besluit:isGehoudenDoor <http://data.lblod.info/id/bestuursorganen/8be6f67728e602e926b80f2a7baad4b03a5d9f67a435d5364596c5252d683004> ;
                     ns1:heeftAfwezigeBijStart <http://data.lblod.info/id/mandatarissen/segtc0002-leen-borremans> ;
-                    prov:endedAtTime "2026-06-26T00:00:00"^^xsd:dateTime ;
+                    prov:atLocation "Stad Zottegem" ;
                     prov:startedAtTime "2026-06-22T00:00:00"^^xsd:dateTime ] ;
             oa:hasTarget [ a oa:SpecificResource ;
                     oa:hasSelector [ a oa:TextPositionSelector ;
-                            oa:end 789 ;
+                            oa:end 6685 ;
+                            oa:start 1 ] ;
+                    oa:hasSource <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> ] ;
+            oa:motivatedBy oa:tagging ],
+        [ a oa:Annotation ;
+            nif:confidence "1.0"^^xsd:float ;
+            oa:hasBody _:new5 ;
+            oa:hasTarget [ a oa:SpecificResource ;
+                    oa:hasSelector [ a oa:TextPositionSelector ;
+                            oa:end 6685 ;
                             oa:start 1 ] ;
                     oa:hasSource <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> ] ;
             oa:motivatedBy oa:tagging ] ;
