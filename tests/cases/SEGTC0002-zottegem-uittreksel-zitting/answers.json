@@ -10,323 +10,251 @@
         "last": "voorzitter",
         "properties": [
           {
-            "property": "S1.P3",
-            "start": 6,
-            "end": 6,
-            "first": "22 juni 2026",
-            "last": "22 juni 2026",
-            "value": "2026-06-22T19:00:00"
+            "property": "S1.P1",
+            "start": 28,
+            "end": 49,
+            "first": "17.",
+            "last": "2023."
           },
           {
             "property": "S1.P4",
+            "ref": "E20",
             "start": 10,
             "end": 10,
             "first": "Lieve Vander Hauwert, voorzitter,",
-            "last": "Lieve Vander Hauwert, voorzitter,",
-            "ref": "E20"
+            "last": "Lieve Vander Hauwert, voorzitter,"
           },
           {
             "property": "S1.P4",
+            "ref": "E4",
             "start": 11,
             "end": 11,
             "first": "Evelien De Both, burgemeester,",
-            "last": "Evelien De Both, burgemeester,",
-            "ref": "E4"
+            "last": "Evelien De Both, burgemeester,"
           },
           {
             "property": "S1.P4",
+            "ref": "E1",
             "start": 12,
             "end": 12,
-            "first": "Brecht Cassiman, Jenne De Potter, Marnic De Clercq, Lieselotte De Roover, Leen Goossens, schepenen,",
-            "last": "Brecht Cassiman, Jenne De Potter, Marnic De Clercq, Lieselotte De Roover, Leen Goossens, schepenen,",
-            "ref": "E1"
+            "first": "Brecht Cassiman,",
+            "last": "Brecht Cassiman,"
           },
           {
             "property": "S1.P4",
+            "ref": "E12",
             "start": 12,
             "end": 12,
-            "first": "Brecht Cassiman",
-            "last": "Brecht Cassiman",
-            "ref": "E1"
+            "first": "Jenne De Potter,",
+            "last": "Jenne De Potter,"
           },
           {
             "property": "S1.P4",
+            "ref": "E23",
             "start": 12,
             "end": 12,
-            "first": "Jenne De Potter",
-            "last": "Jenne De Potter",
-            "ref": "E12"
+            "first": "Marnic De Clercq,",
+            "last": "Marnic De Clercq,"
           },
           {
             "property": "S1.P4",
+            "ref": "E18",
             "start": 12,
             "end": 12,
-            "first": "Marnic De Clercq",
-            "last": "Marnic De Clercq",
-            "ref": "E23"
+            "first": "Lieselotte De Roover,",
+            "last": "Lieselotte De Roover,"
           },
           {
             "property": "S1.P4",
+            "ref": "E17",
             "start": 12,
             "end": 12,
-            "first": "Lieselotte De Roover",
-            "last": "Lieselotte De Roover",
-            "ref": "E18"
+            "first": "Leen Goossens,",
+            "last": "Leen Goossens,"
           },
           {
             "property": "S1.P4",
-            "start": 12,
-            "end": 12,
-            "first": "Leen Goossens",
-            "last": "Leen Goossens",
-            "ref": "E17"
-          },
-          {
-            "property": "S1.P4",
+            "ref": "E26",
             "start": 13,
             "end": 13,
-            "first": "Peter Lagaert, schepen van rechtswege,",
-            "last": "Peter Lagaert, schepen van rechtswege,",
-            "ref": "E26"
+            "first": "Peter Lagaert,",
+            "last": "Peter Lagaert, schepen van rechtswege,"
           },
           {
             "property": "S1.P4",
-            "start": 14,
-            "end": 17,
-            "first": "Peter Roman, Cynthia Van den Steen, Evert De Smet, Heidi Schuddinck, Dieter Everaert, Kurt De Loor,",
-            "last": "Jonah Penninck, Stijn De Bruycker, Hobbes Carnewal, Tom Machtelinckx, raadsleden,",
-            "ref": "E27"
-          },
-          {
-            "property": "S1.P4",
+            "ref": "E27",
             "start": 14,
             "end": 14,
-            "first": "Peter Roman",
-            "last": "Peter Roman",
-            "ref": "E27"
+            "first": "Peter Roman,",
+            "last": "Peter Roman,"
           },
           {
             "property": "S1.P4",
+            "ref": "E2",
             "start": 14,
             "end": 14,
-            "first": "Cynthia Van den Steen",
-            "last": "Cynthia Van den Steen",
-            "ref": "E2"
+            "first": "Cynthia Van den Steen,",
+            "last": "Cynthia Van den Steen,"
           },
           {
             "property": "S1.P4",
+            "ref": "E5",
             "start": 14,
             "end": 14,
-            "first": "Evert De Smet",
-            "last": "Evert De Smet",
-            "ref": "E5"
+            "first": "Evert De Smet,",
+            "last": "Evert De Smet,"
           },
           {
             "property": "S1.P4",
+            "ref": "E10",
             "start": 14,
             "end": 14,
-            "first": "Heidi Schuddinck",
-            "last": "Heidi Schuddinck",
-            "ref": "E10"
+            "first": "Heidi Schuddinck,",
+            "last": "Heidi Schuddinck,"
           },
           {
             "property": "S1.P4",
+            "ref": "E3",
             "start": 14,
             "end": 14,
-            "first": "Dieter Everaert",
-            "last": "Dieter Everaert",
-            "ref": "E3"
+            "first": "Dieter Everaert,",
+            "last": "Dieter Everaert,"
           },
           {
             "property": "S1.P4",
+            "ref": "E15",
             "start": 14,
             "end": 14,
-            "first": "Kurt De Loor",
-            "last": "Kurt De Loor",
-            "ref": "E15"
+            "first": "Kurt De Loor,",
+            "last": "Kurt De Loor,"
           },
           {
             "property": "S1.P4",
+            "ref": "E22",
             "start": 15,
             "end": 15,
-            "first": "Louie Van Rijsselberge, Yana Giovanis, Filip Morre, Robin De Cubber, Liliane De Lange,",
-            "last": "Louie Van Rijsselberge, Yana Giovanis, Filip Morre, Robin De Cubber, Liliane De Lange,",
-            "ref": "E22"
+            "first": "Louie Van Rijsselberge,",
+            "last": "Louie Van Rijsselberge,"
           },
           {
             "property": "S1.P4",
+            "ref": "E32",
             "start": 15,
             "end": 15,
-            "first": "Louie Van Rijsselberge",
-            "last": "Louie Van Rijsselberge",
-            "ref": "E22"
+            "first": "Yana Giovanis,",
+            "last": "Yana Giovanis,"
           },
           {
             "property": "S1.P4",
+            "ref": "E6",
             "start": 15,
             "end": 15,
-            "first": "Yana Giovanis",
-            "last": "Yana Giovanis",
-            "ref": "E32"
+            "first": "Filip Morre,",
+            "last": "Filip Morre,"
           },
           {
             "property": "S1.P4",
+            "ref": "E28",
             "start": 15,
             "end": 15,
-            "first": "Filip Morre",
-            "last": "Filip Morre",
-            "ref": "E6"
+            "first": "Robin De Cubber,",
+            "last": "Robin De Cubber,"
           },
           {
             "property": "S1.P4",
+            "ref": "E21",
             "start": 15,
             "end": 15,
-            "first": "Robin De Cubber",
-            "last": "Robin De Cubber",
-            "ref": "E28"
+            "first": "Liliane De Lange,",
+            "last": "Liliane De Lange,"
           },
           {
             "property": "S1.P4",
-            "start": 15,
-            "end": 15,
-            "first": "Liliane De Lange",
-            "last": "Liliane De Lange",
-            "ref": "E21"
-          },
-          {
-            "property": "S1.P4",
+            "ref": "E7",
             "start": 16,
             "end": 16,
-            "first": "Geert Van Waeyenberge, Hans Van De Kerkhove, Nas De Spiegeleer, Katrien De Schampheleer, Nick Célis,",
-            "last": "Geert Van Waeyenberge, Hans Van De Kerkhove, Nas De Spiegeleer, Katrien De Schampheleer, Nick Célis,",
-            "ref": "E7"
+            "first": "Geert Van Waeyenberge,",
+            "last": "Geert Van Waeyenberge,"
           },
           {
             "property": "S1.P4",
+            "ref": "E9",
             "start": 16,
             "end": 16,
-            "first": "Geert Van Waeyenberge",
-            "last": "Geert Van Waeyenberge",
-            "ref": "E7"
+            "first": "Hans Van De Kerkhove,",
+            "last": "Hans Van De Kerkhove,"
           },
           {
             "property": "S1.P4",
+            "ref": "E24",
             "start": 16,
             "end": 16,
-            "first": "Hans Van De Kerkhove",
-            "last": "Hans Van De Kerkhove",
-            "ref": "E9"
+            "first": "Nas De Spiegeleer,",
+            "last": "Nas De Spiegeleer,"
           },
           {
             "property": "S1.P4",
+            "ref": "E14",
             "start": 16,
             "end": 16,
-            "first": "Nas De Spiegeleer",
-            "last": "Nas De Spiegeleer",
-            "ref": "E24"
+            "first": "Katrien De Schampheleer,",
+            "last": "Katrien De Schampheleer,"
           },
           {
             "property": "S1.P4",
+            "ref": "E25",
             "start": 16,
             "end": 16,
-            "first": "Katrien De Schampheleer",
-            "last": "Katrien De Schampheleer",
-            "ref": "E14"
+            "first": "Nick Célis,",
+            "last": "Nick Célis,"
           },
           {
             "property": "S1.P4",
+            "ref": "E13",
             "start": 16,
             "end": 16,
-            "first": "Nick Célis",
-            "last": "Nick Célis",
-            "ref": "E25"
+            "first": "Jonah Penninck,",
+            "last": "Jonah Penninck,"
           },
           {
             "property": "S1.P4",
-            "start": 17,
-            "end": 17,
-            "first": "Jonah Penninck, Stijn De Bruycker, Hobbes Carnewal, Tom Machtelinckx, raadsleden,",
-            "last": "Jonah Penninck, Stijn De Bruycker, Hobbes Carnewal, Tom Machtelinckx, raadsleden,",
-            "ref": "E13"
+            "ref": "E30",
+            "start": 16,
+            "end": 16,
+            "first": "Stijn De Bruycker,",
+            "last": "Stijn De Bruycker,"
           },
           {
             "property": "S1.P4",
-            "start": 17,
-            "end": 17,
-            "first": "Jonah Penninck",
-            "last": "Jonah Penninck",
-            "ref": "E13"
+            "ref": "E11",
+            "start": 16,
+            "end": 16,
+            "first": "Hobbes Carnewal,",
+            "last": "Hobbes Carnewal,"
           },
           {
             "property": "S1.P4",
-            "start": 17,
-            "end": 17,
-            "first": "Stijn De Bruycker",
-            "last": "Stijn De Bruycker",
-            "ref": "E30"
+            "ref": "E31",
+            "start": 16,
+            "end": 16,
+            "first": "Tom Machtelinckx,",
+            "last": "Tom Machtelinckx,"
           },
           {
             "property": "S1.P4",
-            "start": 17,
-            "end": 17,
-            "first": "Hobbes Carnewal",
-            "last": "Hobbes Carnewal",
-            "ref": "E11"
-          },
-          {
-            "property": "S1.P4",
-            "start": 17,
-            "end": 17,
-            "first": "Tom Machtelinckx",
-            "last": "Tom Machtelinckx",
-            "ref": "E31"
-          },
-          {
-            "property": "S1.P4",
+            "ref": "E29",
             "start": 18,
             "end": 18,
             "first": "Sandra De Roeck, wnd. algemeen directeur",
-            "last": "Sandra De Roeck, wnd. algemeen directeur",
-            "ref": "E29"
+            "last": "Sandra De Roeck, wnd. algemeen directeur"
           },
           {
             "property": "S1.P5",
+            "ref": "E16",
             "start": 22,
             "end": 22,
             "first": "Leen Borremans, raadslid",
-            "last": "Leen Borremans, raadslid",
-            "ref": "E16"
-          },
-          {
-            "property": "S1.P11",
-            "start": 10,
-            "end": 10,
-            "first": "Lieve Vander Hauwert, voorzitter,",
-            "last": "Lieve Vander Hauwert, voorzitter,",
-            "ref": "E20"
-          },
-          {
-            "property": "S1.P9",
-            "start": 167,
-            "end": 167,
-            "first": "Sandra De Roeck",
-            "last": "Sandra De Roeck",
-            "ref": "E29"
-          },
-          {
-            "property": "S1.P12",
-            "start": 4,
-            "end": 4,
-            "first": "Gemeenteraad",
-            "last": "Gemeenteraad",
-            "ref": "E8"
-          },
-          {
-            "property": "S1.P1",
-            "start": 28,
-            "end": 29,
-            "first": "17. Verkeer. Aanvullend politiereglement op het verkeer. De invoering van een nieuwe",
-            "last": "verkeerscirculatie in de Parkstraat en Grotstraat. Aanpassing."
+            "last": "Leen Borremans, raadslid"
           },
           {
             "property": "S1.P8",
@@ -334,6 +262,352 @@
             "end": 168,
             "first": "Uittreksel",
             "last": "voorzitter"
+          },
+          {
+            "property": "S1.P9",
+            "ref": "E29",
+            "start": 18,
+            "end": 18,
+            "first": "Sandra De Roeck, wnd. algemeen directeur",
+            "last": "Sandra De Roeck, wnd. algemeen directeur"
+          },
+          {
+            "property": "S1.P11",
+            "ref": "E20",
+            "start": 10,
+            "end": 10,
+            "first": "Lieve Vander Hauwert, voorzitter,",
+            "last": "Lieve Vander Hauwert, voorzitter,"
+          },
+          {
+            "property": "S1.P12",
+            "ref": "E8",
+            "start": 4,
+            "end": 4,
+            "first": "uit de notulen van de Gemeenteraad",
+            "last": "uit de notulen van de Gemeenteraad"
+          },
+          {
+            "property": "S1.P13",
+            "start": 177,
+            "end": 177,
+            "first": "Stad Zottegem",
+            "last": "Stad Zottegem"
+          },
+          {
+            "property": "S1.P14",
+            "start": 6,
+            "end": 6,
+            "first": "22 juni 2026",
+            "last": "22 juni 2026",
+            "value": "2026-06-22T00:00:00"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "segments": [
+      {
+        "id": "N1",
+        "shape": "S1",
+        "start": 2,
+        "end": 168,
+        "first": "Uittreksel",
+        "last": "voorzitter",
+        "properties": [
+          {
+            "property": "S1.P1",
+            "start": 28,
+            "end": 48,
+            "first": "17.",
+            "last": "openbare weg."
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E20",
+            "start": 10,
+            "end": 10,
+            "first": "Lieve Vander Hauwert, voorzitter,",
+            "last": "Lieve Vander Hauwert, voorzitter,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E4",
+            "start": 11,
+            "end": 11,
+            "first": "Evelien De Both, burgemeester,",
+            "last": "Evelien De Both, burgemeester,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E1",
+            "start": 12,
+            "end": 12,
+            "first": "Brecht Cassiman,",
+            "last": "Brecht Cassiman,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E12",
+            "start": 12,
+            "end": 12,
+            "first": "Jenne De Potter,",
+            "last": "Jenne De Potter,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E23",
+            "start": 12,
+            "end": 12,
+            "first": "Marnic De Clercq,",
+            "last": "Marnic De Clercq,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E18",
+            "start": 12,
+            "end": 12,
+            "first": "Lieselotte De Roover,",
+            "last": "Lieselotte De Roover,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E17",
+            "start": 12,
+            "end": 12,
+            "first": "Leen Goossens,",
+            "last": "Leen Goossens,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E26",
+            "start": 13,
+            "end": 13,
+            "first": "Peter Lagaert,",
+            "last": "Peter Lagaert, schepen van rechtswege,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E27",
+            "start": 14,
+            "end": 14,
+            "first": "Peter Roman,",
+            "last": "Peter Roman,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E2",
+            "start": 14,
+            "end": 14,
+            "first": "Cynthia Van den Steen,",
+            "last": "Cynthia Van den Steen,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E5",
+            "start": 14,
+            "end": 14,
+            "first": "Evert De Smet,",
+            "last": "Evert De Smet,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E10",
+            "start": 14,
+            "end": 14,
+            "first": "Heidi Schuddinck,",
+            "last": "Heidi Schuddinck,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E3",
+            "start": 14,
+            "end": 14,
+            "first": "Dieter Everaert,",
+            "last": "Dieter Everaert,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E15",
+            "start": 14,
+            "end": 14,
+            "first": "Kurt De Loor,",
+            "last": "Kurt De Loor,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E22",
+            "start": 15,
+            "end": 15,
+            "first": "Louie Van Rijsselberge,",
+            "last": "Louie Van Rijsselberge,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E32",
+            "start": 15,
+            "end": 15,
+            "first": "Yana Giovanis,",
+            "last": "Yana Giovanis,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E6",
+            "start": 15,
+            "end": 15,
+            "first": "Filip Morre,",
+            "last": "Filip Morre,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E28",
+            "start": 15,
+            "end": 15,
+            "first": "Robin De Cubber,",
+            "last": "Robin De Cubber,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E21",
+            "start": 15,
+            "end": 15,
+            "first": "Liliane De Lange,",
+            "last": "Liliane De Lange,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E7",
+            "start": 16,
+            "end": 16,
+            "first": "Geert Van Waeyenberge,",
+            "last": "Geert Van Waeyenberge,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E9",
+            "start": 16,
+            "end": 16,
+            "first": "Hans Van De Kerkhove,",
+            "last": "Hans Van De Kerkhove,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E24",
+            "start": 16,
+            "end": 16,
+            "first": "Nas De Spiegeleer,",
+            "last": "Nas De Spiegeleer,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E14",
+            "start": 16,
+            "end": 16,
+            "first": "Katrien De Schampheleer,",
+            "last": "Katrien De Schampheleer,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E25",
+            "start": 16,
+            "end": 16,
+            "first": "Nick Célis,",
+            "last": "Nick Célis,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E13",
+            "start": 16,
+            "end": 16,
+            "first": "Jonah Penninck,",
+            "last": "Jonah Penninck,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E30",
+            "start": 16,
+            "end": 16,
+            "first": "Stijn De Bruycker,",
+            "last": "Stijn De Bruycker,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E11",
+            "start": 16,
+            "end": 16,
+            "first": "Hobbes Carnewal,",
+            "last": "Hobbes Carnewal,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E31",
+            "start": 16,
+            "end": 16,
+            "first": "Tom Machtelinckx,",
+            "last": "Tom Machtelinckx,"
+          },
+          {
+            "property": "S1.P4",
+            "ref": "E29",
+            "start": 18,
+            "end": 18,
+            "first": "Sandra De Roeck, wnd. algemeen directeur",
+            "last": "Sandra De Roeck, wnd. algemeen directeur"
+          },
+          {
+            "property": "S1.P5",
+            "ref": "E16",
+            "start": 22,
+            "end": 22,
+            "first": "Leen Borremans, raadslid",
+            "last": "Leen Borremans, raadslid"
+          },
+          {
+            "property": "S1.P8",
+            "start": 2,
+            "end": 168,
+            "first": "Uittreksel",
+            "last": "voorzitter"
+          },
+          {
+            "property": "S1.P9",
+            "ref": "E29",
+            "start": 18,
+            "end": 18,
+            "first": "Sandra De Roeck, wnd. algemeen directeur",
+            "last": "Sandra De Roeck, wnd. algemeen directeur"
+          },
+          {
+            "property": "S1.P11",
+            "ref": "E20",
+            "start": 10,
+            "end": 10,
+            "first": "Lieve Vander Hauwert, voorzitter,",
+            "last": "Lieve Vander Hauwert, voorzitter,"
+          },
+          {
+            "property": "S1.P12",
+            "ref": "E8",
+            "start": 4,
+            "end": 4,
+            "first": "uit de notulen van de Gemeenteraad",
+            "last": "uit de notulen van de Gemeenteraad"
+          },
+          {
+            "property": "S1.P13",
+            "start": 177,
+            "end": 177,
+            "first": "Stad Zottegem",
+            "last": "Stad Zottegem"
+          },
+          {
+            "property": "S1.P14",
+            "start": 6,
+            "end": 6,
+            "first": "22 juni 2026",
+            "last": "22 juni 2026",
+            "value": "2026-06-22T00:00:00"
           }
         ]
       }

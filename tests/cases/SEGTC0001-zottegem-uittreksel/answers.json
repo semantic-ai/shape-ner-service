@@ -7,7 +7,7 @@
         "start": 28,
         "end": 162,
         "first": "17. Verkeer. Aanvullend politiereglement op het verkeer. De invoering van een nieuwe",
-        "last": "Koning Albert II-laan 20 bus 2, 1000 Brussel.",
+        "last": "1000 Brussel.",
         "properties": [
           {
             "property": "S1.P9",
@@ -35,7 +35,7 @@
             "start": 79,
             "end": 162,
             "first": "BESLIST:",
-            "last": "Koning Albert II-laan 20 bus 2, 1000 Brussel."
+            "last": "1000 Brussel."
           },
           {
             "property": "S1.P4",
@@ -69,7 +69,7 @@
         "start": 80,
         "end": 95,
         "first": "Artikel 1. Invoeren van éénrichtingsverkeer in de Grotstraat, uitgezonderd fietsers en bromfietsers klasse A.",
-        "last": "en met leesrichting Grotenbergestraat.",
+        "last": "Grotenbergestraat.",
         "properties": [
           {
             "property": "S2.P2",
@@ -83,14 +83,7 @@
             "start": 80,
             "end": 95,
             "first": "Invoeren van éénrichtingsverkeer in de Grotstraat, uitgezonderd fietsers en bromfietsers klasse A.",
-            "last": "en met leesrichting Grotenbergestraat."
-          },
-          {
-            "property": "S2.P3",
-            "start": 80,
-            "end": 80,
-            "first": "Artikel 1",
-            "last": "Artikel 1"
+            "last": "Grotenbergestraat."
           }
         ]
       },
@@ -115,13 +108,6 @@
             "end": 127,
             "first": "Invoeren van éénrichtingsverkeer in de Parkstraat, uitgezonderd fietsers en bromfietsers klasse A.",
             "last": "van het Xpunt met Parkstraat."
-          },
-          {
-            "property": "S2.P3",
-            "start": 109,
-            "end": 109,
-            "first": "Artikel 2",
-            "last": "Artikel 2"
           }
         ]
       },
@@ -146,13 +132,6 @@
             "end": 138,
             "first": "Invoeren van geschrankt parkeren in de Parkstraat.",
             "last": "die de parkeerstroken aanduiden."
-          },
-          {
-            "property": "S2.P3",
-            "start": 128,
-            "end": 128,
-            "first": "Artikel 3",
-            "last": "Artikel 3"
           }
         ]
       },
@@ -177,13 +156,6 @@
             "end": 148,
             "first": "Plaatsen van een verkeerseiland in de Parkstraat om te vermijden dat het éénrichtingsverkeer",
             "last": "bromfietsers klasse A."
-          },
-          {
-            "property": "S2.P3",
-            "start": 140,
-            "end": 140,
-            "first": "Artikel 4",
-            "last": "Artikel 4"
           }
         ]
       },
@@ -208,13 +180,6 @@
             "end": 154,
             "first": "Invoeren van parkeerverbod in de Leenstraat.",
             "last": "E1 tussen de Gentse Steenweg en de bushalte (onpare kant)."
-          },
-          {
-            "property": "S2.P3",
-            "start": 150,
-            "end": 150,
-            "first": "Artikel 5",
-            "last": "Artikel 5"
           }
         ]
       },
@@ -224,7 +189,7 @@
         "start": 160,
         "end": 162,
         "first": "Artikel 6. Dit aanvullend reglement zal ter kennisgeving worden toegestuurd aan de Vlaamse Overheid,",
-        "last": "Koning Albert II-laan 20 bus 2, 1000 Brussel.",
+        "last": "1000 Brussel.",
         "properties": [
           {
             "property": "S2.P2",
@@ -238,14 +203,7 @@
             "start": 160,
             "end": 162,
             "first": "Dit aanvullend reglement zal ter kennisgeving worden toegestuurd aan de Vlaamse Overheid,",
-            "last": "Koning Albert II-laan 20 bus 2, 1000 Brussel."
-          },
-          {
-            "property": "S2.P3",
-            "start": 160,
-            "end": 160,
-            "first": "Artikel 6",
-            "last": "Artikel 6"
+            "last": "1000 Brussel."
           }
         ]
       }
