@@ -135,7 +135,7 @@ class LLMSegmentorWithShape:
                        "first": "...", "last": "...", "value": "..."},
                       {"property": "<relation property key>", "ref": "<N key>"},
                       {"property": "<relation property key>", "ref": "<E key>",
-                       "start": 15, "end": 15, "first": "...", "last": "..."}]}
+                       "start": 15, "end": 15, "first": "...", "last": "..."}<PLACEHOLDER CONTRACT>]}
     ]}
     Every new occurrence has a unique "id" (N1, N2, ...). List new occurrences in
     document order. Return {"segments": []} if nothing is found.
@@ -274,6 +274,10 @@ class LLMSegmentorWithShape:
                         "when it says so and it is one of them, otherwise the span of the passage of the document that "
                         "mentions it (e.g. the name of a document), without \"ref\", which becomes an entity of its "
                         "own. Only when the document mentions it, and never the occurrence itself.")
+    # In the output contract of a target with placeholders: a relation given as the span of a passage, without "ref"
+    PLACEHOLDER_CONTRACT = ("<PLACEHOLDER CONTRACT>",
+                            ',\n                      {"property": "<relation property key>", "start": 20, "end": 20,'
+                            '\n                       "first": "...", "last": "..."}')
 
     def _render_system_prompt(self) -> str:
         """
@@ -286,7 +290,9 @@ class LLMSegmentorWithShape:
                  *self.prompt_rules]
         rules = "".join(textwrap.fill(rule, width=self.RULE_WIDTH, initial_indent="    - ", subsequent_indent="      ")
                         + "\n" for rule in rules)
-        return self.SYSTEM_PROMPT.replace(self.TARGET_RULES, rules)
+        marker, placeholder_contract = self.PLACEHOLDER_CONTRACT
+        return (self.SYSTEM_PROMPT.replace(self.TARGET_RULES, rules)
+                .replace(marker, placeholder_contract if self.placeholders else ""))
 
     def _resolve(self, path: str) -> Path:
         return Path(path) if Path(path).is_absolute() else self.PROJECT_ROOT / path

@@ -40,10 +40,10 @@
     RELATIONS
     - A property marked as a relation refers to another occurrence or existing
       entity: give its key in "ref" ("N..." id of an occurrence or "E..." key of
-      an existing entity) instead of "text".
+      an existing entity) instead of a span.
     - The relation is given on the occurrence that has the property.
-    - A ref to an existing entity also gets "text": where the document mentions
-      it, copied verbatim (e.g. a person's name as written). Go through the
+    - A ref to an existing entity also gets the span where the document
+      mentions it (e.g. a person's name as written), see SPANS. Go through the
       document and give a ref for every mention of an existing entity.
     - Always give every relation the document supports from the occurrences you
       return, to each other and to existing entities.
@@ -52,11 +52,16 @@
       that is not in scope): never refer to another occurrence, or to the
       occurrence itself, instead.
 
-    COPYING TEXT
-    - "text": the complete text of the occurrence or property value, copied
-      verbatim from the document.
-    - Copy character for character: no paraphrasing, translation, summarizing,
-      normalization or added punctuation.
+    SPANS
+    - The document is presented with a number on every line, e.g. "  15| ".
+      Give every span (an occurrence, a property value or a mention) as
+      "start" and "end": the numbers of the lines it runs from and to, both
+      included.
+    - Every span also has "first" and "last": a few words copied verbatim from
+      the document at the start and at the end of the span, without the line
+      numbers; for a one-word span they are the same word. Copy them character
+      for character: no paraphrasing, translation, summarizing, normalization
+      or added punctuation.
     - An occurrence includes all of its content: every line, list, bullet point
       and continuation (also across page breaks), up to where the next part of
       the document starts, such as the next occurrence. Do not stop after the
@@ -68,58 +73,80 @@
     - Unlike other relations, a relation that says "give ... the text that
       mentions it" can refer to something that is not one of the STRUCTURES:
       give the "ref" of an existing entity when it says so and it is one of
-      them, otherwise "text": the passage of the document that mentions it (e.g.
-      the name of a document), which becomes an entity of its own. Only when the
-      document mentions it, and never the occurrence itself.
+      them, otherwise the span of the passage of the document that mentions it
+      (e.g. the name of a document), without "ref", which becomes an entity of
+      its own. Only when the document mentions it, and never the occurrence
+      itself.
+    - An uittreksel is an extract of the minutes of one session: it has exactly
+      one occurrence of the session, which starts with the header (the date, who
+      was present and who was excused). The agenda item, the decision and the
+      signatures at the end belong to that session, never to a session of their
+      own. The date of the certified copy ("Voor eensluidend afschrift op ...")
+      is a date of the document, not of the session.
     - Occurrences of different structures are always returned separately, also
       when one contains the other.
-    - Copy everything between the start and the end of the text, including page
-      headers, footers and page numbers that interrupt it: the text must be one
-      contiguous piece of the document.
+    - A span covers everything between its first and its last line, including
+      page headers, footers and page numbers that interrupt the content: those
+      lines belong to the span.
     - A property with a datatype other than a string (e.g. a date, a date and
       time, or a number) also gets "value": the value in the form of that
       datatype, e.g. 2026-06-22 for a date and 2026-06-22T19:00:00 for a date and
-      time. Its "text" is still the text the value is read from, copied verbatim.
+      time. Its span is still the text the value is read from.
 
     OUTPUT CONTRACT
     Respond with STRICT JSON only, no markdown fences or commentary, exactly:
     {"segments": [
-      {"id": "N1", "shape": "<structure key>", "text": "...",
-       "properties": [{"property": "<property key>", "text": "..."},
-                      {"property": "<typed property key>", "text": "...", "value": "..."},
+      {"id": "N1", "shape": "<structure key>", "start": 12, "end": 40,
+       "first": "...", "last": "...",
+       "properties": [{"property": "<property key>", "start": 12, "end": 13,
+                       "first": "...", "last": "..."},
+                      {"property": "<typed property key>", "start": 14, "end": 14,
+                       "first": "...", "last": "...", "value": "..."},
                       {"property": "<relation property key>", "ref": "<N key>"},
-                      {"property": "<relation property key>", "ref": "<E key>", "text": "..."}]}
+                      {"property": "<relation property key>", "ref": "<E key>",
+                       "start": 15, "end": 15, "first": "...", "last": "..."},
+                      {"property": "<relation property key>", "start": 20, "end": 20,
+                       "first": "...", "last": "..."}]}
     ]}
     Every new occurrence has a unique "id" (N1, N2, ...). List new occurrences in
     document order. Return {"segments": []} if nothing is found.
+
+    For example, the line
+  15| Artikel 1. Invoeren van éénrichtingsverkeer.
+    is returned as:
+    {"id": "N1", "shape": "S2", "start": 15, "end": 15, "first": "Artikel 1.",
+     "last": "éénrichtingsverkeer.", "properties": [
+      {"property": "S2.P2", "start": 15, "end": 15, "first": "1", "last": "1"},
+      {"property": "S2.P1", "start": 15, "end": 15, "first": "Invoeren",
+       "last": "éénrichtingsverkeer."}]}
 
     STRUCTURES
     [S1] Zitting (instance of <http://data.vlaanderen.be/ns/besluit#Zitting>)
   Example, with its properties marked [key] ... [/key]: Aanwezigen bij zitting Aanwezige leden [S1.P4] René De Becker ( Gemeenteraadslid ) [/S1.P4] [S1.P4] Walter De Brouwer ( Gemeenteraadslid ) [/S1.P4] [S1.P4] Carla Demaertelaere ( Gemeenteraadslid ) [/S1.P4] Afwezige leden [S1.P5] Melody Debaetselier ( Gemeenteraadslid ) [/S1.P5]
   Properties:
-    [S1.P1] behandelt: Een formeel vastgelegd agendapunt van de zitting. (path <http://data.vlaanderen.be/ns/besluit#behandelt>, relation to an instance of <http://data.vlaanderen.be/ns/besluit#Agendapunt>: give the text that mentions it, min 1)
+    [S1.P1] behandelt: Een formeel vastgelegd agendapunt van de zitting. (path <http://data.vlaanderen.be/ns/besluit#behandelt>, relation to an instance of <http://data.vlaanderen.be/ns/besluit#Agendapunt>: give the span of the text that mentions it, min 1)
         Example (hidden metadata, not visible text): <http://data.lblod.info/id/agendapunten/659537278AAC56EB1455CBD9>
     [S1.P2] eind: Tijdstip waarop de zitting eindigt. (path <http://www.w3.org/ns/prov#endedAtTime>, datatype <http://www.w3.org/2001/XMLSchema#dateTime>, min 1, max 1)
         Example (hidden metadata, not visible text): 2024-01-08T20:35:23.748Z
     [S1.P3] geplandeStart: Het tijdstip waarop de zitting gepland is om te beginnen. (path <http://data.vlaanderen.be/ns/besluit#geplandeStart>, datatype <http://www.w3.org/2001/XMLSchema#dateTime>, min 1, max 1)
         Example (hidden metadata, not visible text): 2024-01-08T19:00:31.586Z
-    [S1.P4] heeftAanwezigeBijStart: Een mandataris (van het bestuursorsgaan die de zitting hield) die aanwezig was bij de start van de zitting. (path <http://data.vlaanderen.be/ns/besluit#heeftAanwezigeBijStart>, relation to an instance of <http://data.vlaanderen.be/ns/mandaat#Mandataris>: give the "ref" of an existing entity of that class or the text that mentions it, min 0)
-        Example of what it refers to (give the "ref" of an existing entity of that class or the text that mentions it): René De Becker ( Gemeenteraadslid )
-    [S1.P5] heeftAfwezigeBijStart: Een mandataris (van het bestuursorsgaan die de zitting hield) die afwezig was bij de start van de zitting. (path <http://mu.semte.ch/vocabularies/ext/heeftAfwezigeBijStart>, relation to an instance of <http://data.vlaanderen.be/ns/mandaat#Mandataris>: give the "ref" of an existing entity of that class or the text that mentions it, min 0)
-        Example of what it refers to (give the "ref" of an existing entity of that class or the text that mentions it): Melody Debaetselier ( Gemeenteraadslid )
-    [S1.P6] heeftAgenda: De formele notulen van de zitting. (path <http://data.vlaanderen.be/ns/besluit#heeftAgenda>, relation to an instance of <http://xmlns.com/foaf/0.1/Document>: give the text that mentions it, min 0, max 1)
+    [S1.P4] heeftAanwezigeBijStart: Een mandataris (van het bestuursorsgaan die de zitting hield) die aanwezig was bij de start van de zitting. (path <http://data.vlaanderen.be/ns/besluit#heeftAanwezigeBijStart>, relation to an instance of <http://data.vlaanderen.be/ns/mandaat#Mandataris>: give the span of the text that mentions it, min 0)
+        Example of what it refers to (give the span of the text that mentions it): René De Becker ( Gemeenteraadslid )
+    [S1.P5] heeftAfwezigeBijStart: Een mandataris (van het bestuursorsgaan die de zitting hield) die afwezig was bij de start van de zitting. (path <http://mu.semte.ch/vocabularies/ext/heeftAfwezigeBijStart>, relation to an instance of <http://data.vlaanderen.be/ns/mandaat#Mandataris>: give the span of the text that mentions it, min 0)
+        Example of what it refers to (give the span of the text that mentions it): Melody Debaetselier ( Gemeenteraadslid )
+    [S1.P6] heeftAgenda: De formele notulen van de zitting. (path <http://data.vlaanderen.be/ns/besluit#heeftAgenda>, relation to an instance of <http://xmlns.com/foaf/0.1/Document>: give the span of the text that mentions it, min 0, max 1)
         Example (hidden metadata, not visible text): <http://data.lblod.info/id/lblod/agendalijsten/fb4ceae0-b131-11ee-ae1d-77c537c8924c>
-    [S1.P7] heeftBesluitenlijst: De formele notulen van de zitting. (path <http://data.vlaanderen.be/ns/besluit#heeftBesluitenlijst>, relation to an instance of <http://xmlns.com/foaf/0.1/Document>: give the text that mentions it, min 0, max 1)
+    [S1.P7] heeftBesluitenlijst: De formele notulen van de zitting. (path <http://data.vlaanderen.be/ns/besluit#heeftBesluitenlijst>, relation to an instance of <http://xmlns.com/foaf/0.1/Document>: give the span of the text that mentions it, min 0, max 1)
         Example (hidden metadata, not visible text): <http://data.lblod.info/id/lblod/besluitenlijsten/fb4ceae0-b131-11ee-ae1d-77c537c8924c>
-    [S1.P8] heeftNotulen: De formele notulen van de zitting. (path <http://data.vlaanderen.be/ns/besluit#heeftNotulen>, relation to an instance of <http://xmlns.com/foaf/0.1/Document>: give the text that mentions it, min 0, max 1)
-        Example of what it refers to (give the text that mentions it): Aanwezigen bij zitting Aanwezige leden René De Becker ( Gemeenteraadslid ) Walter De Brouwer ( Gemeenteraadslid ) Carla Demaertelaere ( Gemeenteraadslid ) Afwezige leden Melody Debaetselier ( Gemeenteraadslid ) Voorzitter: Ann Van de Casteele Secretaris: Leen Ceuppens Openbare behandeling van agendapunt 8/2. Aanvullende belasting op de personenbelasting voor 2024 -2025 ( aanvullend ) Aanwezigen bi…
-    [S1.P9] heeftSecretaris: De mandataris die de rol van secretaris heeft gedurende de zitting. (path <http://data.vlaanderen.be/ns/besluit#heeftSecretaris>, relation to an instance of <http://data.vlaanderen.be/ns/mandaat#Mandataris>: give the "ref" of an existing entity of that class or the text that mentions it, min 1, max 1)
-        Example of what it refers to (give the "ref" of an existing entity of that class or the text that mentions it): Leen Ceuppens
-    [S1.P10] heeftUittreksel: De formele notulen van de zitting. (path <http://data.vlaanderen.be/ns/besluit#heeftUittreksel>, relation to an instance of <http://xmlns.com/foaf/0.1/Document>: give the text that mentions it, min 0)
+    [S1.P8] heeftNotulen: De formele notulen van de zitting. (path <http://data.vlaanderen.be/ns/besluit#heeftNotulen>, relation to an instance of <http://xmlns.com/foaf/0.1/Document>: give the span of the text that mentions it, min 0, max 1)
+        Example of what it refers to (give the span of the text that mentions it): Aanwezigen bij zitting Aanwezige leden René De Becker ( Gemeenteraadslid ) Walter De Brouwer ( Gemeenteraadslid ) Carla Demaertelaere ( Gemeenteraadslid ) Afwezige leden Melody Debaetselier ( Gemeenteraadslid ) Voorzitter: Ann Van de Casteele Secretaris: Leen Ceuppens Openbare behandeling van agendapunt 8/2. Aanvullende belasting op de personenbelasting voor 2024 -2025 ( aanvullend ) Aanwezigen bi…
+    [S1.P9] heeftSecretaris: De mandataris die de rol van secretaris heeft gedurende de zitting. (path <http://data.vlaanderen.be/ns/besluit#heeftSecretaris>, relation to an instance of <http://data.vlaanderen.be/ns/mandaat#Mandataris>: give the span of the text that mentions it, min 1, max 1)
+        Example of what it refers to (give the span of the text that mentions it): Leen Ceuppens
+    [S1.P10] heeftUittreksel: De formele notulen van de zitting. (path <http://data.vlaanderen.be/ns/besluit#heeftUittreksel>, relation to an instance of <http://xmlns.com/foaf/0.1/Document>: give the span of the text that mentions it, min 0)
         Example (hidden metadata, not visible text): <http://data.lblod.info/id/lblod/uittreksels/02d9ca20-b133-11ee-ae1d-77c537c8924c>
-    [S1.P11] heeftVoorzitter: De mandataris die de rol als voorzitter heeft gedurende de zitting. (path <http://data.vlaanderen.be/ns/besluit#heeftVoorzitter>, relation to an instance of <http://data.vlaanderen.be/ns/mandaat#Mandataris>: give the "ref" of an existing entity of that class or the text that mentions it, min 1, max 1)
-        Example of what it refers to (give the "ref" of an existing entity of that class or the text that mentions it): Ann Van de Casteele
-    [S1.P12] isGehoudenDoor: Duidt aan door welk orgaan de zitting is gehouden. (path <http://data.vlaanderen.be/ns/besluit#isGehoudenDoor>, relation to an instance of <http://data.vlaanderen.be/ns/besluit#Bestuursorgaan>: give the "ref" of an existing entity of that class or the text that mentions it, min 1, max 1)
+    [S1.P11] heeftVoorzitter: De mandataris die de rol als voorzitter heeft gedurende de zitting. (path <http://data.vlaanderen.be/ns/besluit#heeftVoorzitter>, relation to an instance of <http://data.vlaanderen.be/ns/mandaat#Mandataris>: give the span of the text that mentions it, min 1, max 1)
+        Example of what it refers to (give the span of the text that mentions it): Ann Van de Casteele
+    [S1.P12] isGehoudenDoor: Duidt aan door welk orgaan de zitting is gehouden. (path <http://data.vlaanderen.be/ns/besluit#isGehoudenDoor>, relation to an instance of <http://data.vlaanderen.be/ns/besluit#Bestuursorgaan>: give the span of the text that mentions it, min 1, max 1)
         Example (hidden metadata, not visible text): <http://data.lblod.info/id/bestuursorganen/fa8ab31cb822a4105f6aa376fb89c7de28021fc05de00ac2730bdfeb5d8c6494>
     [S1.P13] locatie: Locatie waar de zitting plaatsvindt. Doorgaans is dit een zaal in een gebouw. (path <http://www.w3.org/ns/prov#atLocation>, min 0, max 1)
         Example: Administratief Centrum, Kortenberg

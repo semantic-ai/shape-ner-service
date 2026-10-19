@@ -12,24 +12,15 @@
             oa:hasBody _:new5 ;
             oa:hasTarget [ a oa:SpecificResource ;
                     oa:hasSelector [ a oa:TextPositionSelector ;
-                            oa:end 7147 ;
+                            oa:end 6685 ;
                             oa:start 1 ] ;
-                    oa:hasSource <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> ] ;
-            oa:motivatedBy oa:tagging ],
-        [ a oa:Annotation ;
-            nif:confidence "1.0"^^xsd:float ;
-            oa:hasBody _:new1 ;
-            oa:hasTarget [ a oa:SpecificResource ;
-                    oa:hasSelector [ a oa:TextPositionSelector ;
-                            oa:end 939 ;
-                            oa:start 791 ] ;
                     oa:hasSource <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> ] ;
             oa:motivatedBy oa:tagging ],
         [ a oa:Annotation ;
             nif:confidence "1.0"^^xsd:float ;
             oa:hasBody [ a besluit:Zitting ;
                     besluit:behandelt _:new1 ;
-                    besluit:geplandeStart "2026-06-22T00:00:00"^^xsd:dateTime ;
+                    besluit:geplandeStart "2026-06-22T19:00:00"^^xsd:dateTime ;
                     besluit:heeftAanwezigeBijStart <http://data.lblod.info/id/mandatarissen/segtc0002-brecht-cassiman>,
                         <http://data.lblod.info/id/mandatarissen/segtc0002-cynthia-van-den-steen>,
                         <http://data.lblod.info/id/mandatarissen/segtc0002-dieter-everaert>,
@@ -63,13 +54,20 @@
                     besluit:heeftSecretaris <http://data.lblod.info/id/mandatarissen/segtc0002-sandra-de-roeck> ;
                     besluit:heeftVoorzitter <http://data.lblod.info/id/mandatarissen/segtc0002-lieve-vander-hauwert-voorzitter> ;
                     besluit:isGehoudenDoor <http://data.lblod.info/id/bestuursorganen/8be6f67728e602e926b80f2a7baad4b03a5d9f67a435d5364596c5252d683004> ;
-                    ns1:heeftAfwezigeBijStart <http://data.lblod.info/id/mandatarissen/segtc0002-leen-borremans> ;
-                    prov:endedAtTime "2026-06-26T00:00:00"^^xsd:dateTime ;
-                    prov:startedAtTime "2026-06-22T00:00:00"^^xsd:dateTime ] ;
+                    ns1:heeftAfwezigeBijStart <http://data.lblod.info/id/mandatarissen/segtc0002-leen-borremans> ] ;
             oa:hasTarget [ a oa:SpecificResource ;
                     oa:hasSelector [ a oa:TextPositionSelector ;
-                            oa:end 789 ;
+                            oa:end 6685 ;
                             oa:start 1 ] ;
+                    oa:hasSource <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> ] ;
+            oa:motivatedBy oa:tagging ],
+        [ a oa:Annotation ;
+            nif:confidence "1.0"^^xsd:float ;
+            oa:hasBody _:new1 ;
+            oa:hasTarget [ a oa:SpecificResource ;
+                    oa:hasSelector [ a oa:TextPositionSelector ;
+                            oa:end 939 ;
+                            oa:start 791 ] ;
                     oa:hasSource <http://data.lblod.info/id/expressions/2b60747f-c8f7-4311-bbbd-4623c055075e> ] ;
             oa:motivatedBy oa:tagging ] ;
     prov:wasAssociatedWith <http://example.org/agent/entity-extraction> .

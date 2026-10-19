@@ -431,6 +431,9 @@ def test_a_relation_out_of_scope_can_be_a_placeholder_per_passage():
     from tests.support import case_segmentor
     s = case_segmentor(record=False, target="uittreksel-zitting")
     assert s.placeholders and "give the span of the text that mentions it" in s.system_prompt
+    # The output contract shows such a relation: a span without "ref"
+    passage = '{"property": "<relation property key>", "start": 20, "end": 20,'
+    assert passage in s.system_prompt and "<PLACEHOLDER CONTRACT>" not in s.system_prompt
     zitting = s.definitions_by_class[str(BESLUIT.Zitting)]
     key = {prop["path"]: prop["key"] for prop in zitting["properties"]}
     minutes, agenda = key[str(BESLUIT.heeftNotulen)], key[str(BESLUIT.heeftAgenda)]
@@ -468,6 +471,7 @@ def test_a_relation_out_of_scope_can_be_a_placeholder_per_passage():
     # Without placeholders, the relation needs a ref
     target = get_config().segmentation.targets["uittreksel-zitting"].model_copy(update={"placeholders": False})
     without = LLMSegmentorWithShape(target, provider="ollama", model_name="replay")
+    assert passage not in without.system_prompt and "<PLACEHOLDER CONTRACT>" not in without.system_prompt
     problems = []
     without._segments_from_answer(index, {"segments": [session]}, problems, context)
     assert any(f"property {minutes}: relation needs a \"ref\"" in problem for problem in problems)

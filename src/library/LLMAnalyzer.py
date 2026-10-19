@@ -46,7 +46,8 @@ class LLMAnalyzer:
         if provider == "ollama":
             kwargs["format"] = "json"
         elif provider in {"mistralai", "mistral"}:
-            kwargs["response_format"] = {"type": "json_object"}
+            # ChatMistralAI has no response_format field: passed as model_kwargs, it is sent with every request
+            kwargs["model_kwargs"] = {"response_format": {"type": "json_object"}}
 
         self._chat_model = init_chat_model(
             f"{provider}:{model_name}",

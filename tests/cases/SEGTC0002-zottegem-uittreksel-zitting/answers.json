@@ -4,195 +4,336 @@
       {
         "id": "N1",
         "shape": "S1",
-        "text": "Uittreksel\n\nuit de notulen van de Gemeenteraad\n\n22 juni 2026\n\nAanwezig:\n\nLieve Vander Hauwert, voorzitter,\nEvelien De Both, burgemeester,\nBrecht Cassiman, Jenne De Potter, Marnic De Clercq, Lieselotte De Roover, Leen Goossens, schepenen,\nPeter Lagaert, schepen van rechtswege,\nPeter Roman, Cynthia Van den Steen, Evert De Smet, Heidi Schuddinck, Dieter Everaert, Kurt De Loor, \nLouie Van Rijsselberge, Yana Giovanis, Filip Morre, Robin De Cubber, Liliane De Lange, \nGeert Van Waeyenberge, Hans Van De Kerkhove, Nas De Spiegeleer, Katrien De Schampheleer, Nick Célis, \nJonah Penninck, Stijn De Bruycker, Hobbes Carnewal, Tom Machtelinckx, raadsleden,\nSandra De Roeck, wnd. algemeen directeur\n\nVerontschuldigd:\n\nLeen Borremans, raadslid\n\nAfwezig:\n\n__________________________________________",
+        "start": 2,
+        "end": 168,
+        "first": "Uittreksel",
+        "last": "voorzitter",
         "properties": [
           {
-            "property": "S1.P1",
-            "text": "17. Verkeer. Aanvullend politiereglement op het verkeer. De invoering van een nieuwe verkeerscirculatie in de Parkstraat en Grotstraat. Aanpassing."
-          },
-          {
-            "property": "S1.P2",
-            "text": "26 juni 2026",
-            "value": "2026-06-26T00:00:00"
-          },
-          {
             "property": "S1.P3",
-            "text": "22 juni 2026",
-            "value": "2026-06-22T00:00:00"
+            "start": 6,
+            "end": 6,
+            "first": "22 juni 2026",
+            "last": "22 juni 2026",
+            "value": "2026-06-22T19:00:00"
           },
           {
             "property": "S1.P4",
-            "ref": "E20",
-            "text": "Lieve Vander Hauwert, voorzitter"
+            "start": 10,
+            "end": 10,
+            "first": "Lieve Vander Hauwert, voorzitter,",
+            "last": "Lieve Vander Hauwert, voorzitter,",
+            "ref": "E20"
           },
           {
             "property": "S1.P4",
-            "ref": "E4",
-            "text": "Evelien De Both, burgemeester"
+            "start": 11,
+            "end": 11,
+            "first": "Evelien De Both, burgemeester,",
+            "last": "Evelien De Both, burgemeester,",
+            "ref": "E4"
           },
           {
             "property": "S1.P4",
-            "ref": "E1",
-            "text": "Brecht Cassiman"
+            "start": 12,
+            "end": 12,
+            "first": "Brecht Cassiman, Jenne De Potter, Marnic De Clercq, Lieselotte De Roover, Leen Goossens, schepenen,",
+            "last": "Brecht Cassiman, Jenne De Potter, Marnic De Clercq, Lieselotte De Roover, Leen Goossens, schepenen,",
+            "ref": "E1"
           },
           {
             "property": "S1.P4",
-            "ref": "E12",
-            "text": "Jenne De Potter"
+            "start": 12,
+            "end": 12,
+            "first": "Brecht Cassiman",
+            "last": "Brecht Cassiman",
+            "ref": "E1"
           },
           {
             "property": "S1.P4",
-            "ref": "E23",
-            "text": "Marnic De Clercq"
+            "start": 12,
+            "end": 12,
+            "first": "Jenne De Potter",
+            "last": "Jenne De Potter",
+            "ref": "E12"
           },
           {
             "property": "S1.P4",
-            "ref": "E18",
-            "text": "Lieselotte De Roover"
+            "start": 12,
+            "end": 12,
+            "first": "Marnic De Clercq",
+            "last": "Marnic De Clercq",
+            "ref": "E23"
           },
           {
             "property": "S1.P4",
-            "ref": "E17",
-            "text": "Leen Goossens"
+            "start": 12,
+            "end": 12,
+            "first": "Lieselotte De Roover",
+            "last": "Lieselotte De Roover",
+            "ref": "E18"
           },
           {
             "property": "S1.P4",
-            "ref": "E26",
-            "text": "Peter Lagaert"
+            "start": 12,
+            "end": 12,
+            "first": "Leen Goossens",
+            "last": "Leen Goossens",
+            "ref": "E17"
           },
           {
             "property": "S1.P4",
-            "ref": "E27",
-            "text": "Peter Roman"
+            "start": 13,
+            "end": 13,
+            "first": "Peter Lagaert, schepen van rechtswege,",
+            "last": "Peter Lagaert, schepen van rechtswege,",
+            "ref": "E26"
           },
           {
             "property": "S1.P4",
-            "ref": "E2",
-            "text": "Cynthia Van den Steen"
+            "start": 14,
+            "end": 17,
+            "first": "Peter Roman, Cynthia Van den Steen, Evert De Smet, Heidi Schuddinck, Dieter Everaert, Kurt De Loor,",
+            "last": "Jonah Penninck, Stijn De Bruycker, Hobbes Carnewal, Tom Machtelinckx, raadsleden,",
+            "ref": "E27"
           },
           {
             "property": "S1.P4",
-            "ref": "E5",
-            "text": "Evert De Smet"
+            "start": 14,
+            "end": 14,
+            "first": "Peter Roman",
+            "last": "Peter Roman",
+            "ref": "E27"
           },
           {
             "property": "S1.P4",
-            "ref": "E10",
-            "text": "Heidi Schuddinck"
+            "start": 14,
+            "end": 14,
+            "first": "Cynthia Van den Steen",
+            "last": "Cynthia Van den Steen",
+            "ref": "E2"
           },
           {
             "property": "S1.P4",
-            "ref": "E3",
-            "text": "Dieter Everaert"
+            "start": 14,
+            "end": 14,
+            "first": "Evert De Smet",
+            "last": "Evert De Smet",
+            "ref": "E5"
           },
           {
             "property": "S1.P4",
-            "ref": "E15",
-            "text": "Kurt De Loor"
+            "start": 14,
+            "end": 14,
+            "first": "Heidi Schuddinck",
+            "last": "Heidi Schuddinck",
+            "ref": "E10"
           },
           {
             "property": "S1.P4",
-            "ref": "E22",
-            "text": "Louie Van Rijsselberge"
+            "start": 14,
+            "end": 14,
+            "first": "Dieter Everaert",
+            "last": "Dieter Everaert",
+            "ref": "E3"
           },
           {
             "property": "S1.P4",
-            "ref": "E32",
-            "text": "Yana Giovanis"
+            "start": 14,
+            "end": 14,
+            "first": "Kurt De Loor",
+            "last": "Kurt De Loor",
+            "ref": "E15"
           },
           {
             "property": "S1.P4",
-            "ref": "E6",
-            "text": "Filip Morre"
+            "start": 15,
+            "end": 15,
+            "first": "Louie Van Rijsselberge, Yana Giovanis, Filip Morre, Robin De Cubber, Liliane De Lange,",
+            "last": "Louie Van Rijsselberge, Yana Giovanis, Filip Morre, Robin De Cubber, Liliane De Lange,",
+            "ref": "E22"
           },
           {
             "property": "S1.P4",
-            "ref": "E28",
-            "text": "Robin De Cubber"
+            "start": 15,
+            "end": 15,
+            "first": "Louie Van Rijsselberge",
+            "last": "Louie Van Rijsselberge",
+            "ref": "E22"
           },
           {
             "property": "S1.P4",
-            "ref": "E21",
-            "text": "Liliane De Lange"
+            "start": 15,
+            "end": 15,
+            "first": "Yana Giovanis",
+            "last": "Yana Giovanis",
+            "ref": "E32"
           },
           {
             "property": "S1.P4",
-            "ref": "E7",
-            "text": "Geert Van Waeyenberge"
+            "start": 15,
+            "end": 15,
+            "first": "Filip Morre",
+            "last": "Filip Morre",
+            "ref": "E6"
           },
           {
             "property": "S1.P4",
-            "ref": "E9",
-            "text": "Hans Van De Kerkhove"
+            "start": 15,
+            "end": 15,
+            "first": "Robin De Cubber",
+            "last": "Robin De Cubber",
+            "ref": "E28"
           },
           {
             "property": "S1.P4",
-            "ref": "E24",
-            "text": "Nas De Spiegeleer"
+            "start": 15,
+            "end": 15,
+            "first": "Liliane De Lange",
+            "last": "Liliane De Lange",
+            "ref": "E21"
           },
           {
             "property": "S1.P4",
-            "ref": "E14",
-            "text": "Katrien De Schampheleer"
+            "start": 16,
+            "end": 16,
+            "first": "Geert Van Waeyenberge, Hans Van De Kerkhove, Nas De Spiegeleer, Katrien De Schampheleer, Nick Célis,",
+            "last": "Geert Van Waeyenberge, Hans Van De Kerkhove, Nas De Spiegeleer, Katrien De Schampheleer, Nick Célis,",
+            "ref": "E7"
           },
           {
             "property": "S1.P4",
-            "ref": "E25",
-            "text": "Nick Célis"
+            "start": 16,
+            "end": 16,
+            "first": "Geert Van Waeyenberge",
+            "last": "Geert Van Waeyenberge",
+            "ref": "E7"
           },
           {
             "property": "S1.P4",
-            "ref": "E13",
-            "text": "Jonah Penninck"
+            "start": 16,
+            "end": 16,
+            "first": "Hans Van De Kerkhove",
+            "last": "Hans Van De Kerkhove",
+            "ref": "E9"
           },
           {
             "property": "S1.P4",
-            "ref": "E30",
-            "text": "Stijn De Bruycker"
+            "start": 16,
+            "end": 16,
+            "first": "Nas De Spiegeleer",
+            "last": "Nas De Spiegeleer",
+            "ref": "E24"
           },
           {
             "property": "S1.P4",
-            "ref": "E11",
-            "text": "Hobbes Carnewal"
+            "start": 16,
+            "end": 16,
+            "first": "Katrien De Schampheleer",
+            "last": "Katrien De Schampheleer",
+            "ref": "E14"
           },
           {
             "property": "S1.P4",
-            "ref": "E31",
-            "text": "Tom Machtelinckx"
+            "start": 16,
+            "end": 16,
+            "first": "Nick Célis",
+            "last": "Nick Célis",
+            "ref": "E25"
           },
           {
             "property": "S1.P4",
-            "ref": "E29",
-            "text": "Sandra De Roeck, wnd. algemeen directeur"
+            "start": 17,
+            "end": 17,
+            "first": "Jonah Penninck, Stijn De Bruycker, Hobbes Carnewal, Tom Machtelinckx, raadsleden,",
+            "last": "Jonah Penninck, Stijn De Bruycker, Hobbes Carnewal, Tom Machtelinckx, raadsleden,",
+            "ref": "E13"
+          },
+          {
+            "property": "S1.P4",
+            "start": 17,
+            "end": 17,
+            "first": "Jonah Penninck",
+            "last": "Jonah Penninck",
+            "ref": "E13"
+          },
+          {
+            "property": "S1.P4",
+            "start": 17,
+            "end": 17,
+            "first": "Stijn De Bruycker",
+            "last": "Stijn De Bruycker",
+            "ref": "E30"
+          },
+          {
+            "property": "S1.P4",
+            "start": 17,
+            "end": 17,
+            "first": "Hobbes Carnewal",
+            "last": "Hobbes Carnewal",
+            "ref": "E11"
+          },
+          {
+            "property": "S1.P4",
+            "start": 17,
+            "end": 17,
+            "first": "Tom Machtelinckx",
+            "last": "Tom Machtelinckx",
+            "ref": "E31"
+          },
+          {
+            "property": "S1.P4",
+            "start": 18,
+            "end": 18,
+            "first": "Sandra De Roeck, wnd. algemeen directeur",
+            "last": "Sandra De Roeck, wnd. algemeen directeur",
+            "ref": "E29"
           },
           {
             "property": "S1.P5",
-            "ref": "E16",
-            "text": "Leen Borremans, raadslid"
-          },
-          {
-            "property": "S1.P8",
-            "text": "Uittreksel\n\nuit de notulen van de Gemeenteraad\n\n22 juni 2026\n\nAanwezig:\n\nLieve Vander Hauwert, voorzitter,\nEvelien De Both, burgemeester,\nBrecht Cassiman, Jenne De Potter, Marnic De Clercq, Lieselotte De Roover, Leen Goossens, schepenen,\nPeter Lagaert, schepen van rechtswege,\nPeter Roman, Cynthia Van den Steen, Evert De Smet, Heidi Schuddinck, Dieter Everaert, Kurt De Loor, \nLouie Van Rijsselberge, Yana Giovanis, Filip Morre, Robin De Cubber, Liliane De Lange, \nGeert Van Waeyenberge, Hans Van De Kerkhove, Nas De Spiegeleer, Katrien De Schampheleer, Nick Célis, \nJonah Penninck, Stijn De Bruycker, Hobbes Carnewal, Tom Machtelinckx, raadsleden,\nSandra De Roeck, wnd. algemeen directeur\n\nVerontschuldigd:\n\nLeen Borremans, raadslid\n\nAfwezig:\n\n__________________________________________\n\n17. Verkeer. Aanvullend politiereglement op het verkeer. De invoering van een nieuwe verkeerscirculatie in de Parkstraat en Grotstraat. Aanpassing.\n\nBevoegd\nJenne De Potter\n\nBevoegdheid\nArtikel 40, §3 van het Decreet Lokaal Bestuur.\n\nWetten en reglementen\nHet decreet van 16 mei 2008 betreffende de aanvullende reglementen op het wegverkeer en de plaatsing en bekostiging van de verkeerstekens.\n\nHet Koninklijk Besluit van 16 maart 1968, betreffende de politie over het wegverkeer.\n\nElektronisch ondertekend document, blz. 1 van 4. Verifieerbaar via code.esignflow.be met code 2446-1849-2518-2282\n\n\n\nHet Koninklijk Besluit van 1 december 1975 houdende algemeen reglement op de politie van het wegverkeer en van het gebruik van de openbare weg.\n\nHet Besluit van de Vlaamse Regering van 23 januari 2009 betreffende de aanvullende reglementen op het wegverkeer en de plaatsing en bekostiging van de verkeerstekens.\n\nHet Ministerieel Besluit van 11 oktober 1976 waarbij de minimum afmetingen en de bijzondere plaatsingsvoorwaarden van de verkeerstekens worden bepaald.\n\nDe omzendbrief MOB/2009/01 van 3 april 2009.\n\nVerwijzingsdocumenten\nAP. 18 september 2023. Track changes.\n\nVerantwoording\nIn 2023 werd er een aangepaste verkeerscirculatie ingevoerd in de Grotstraat en Parkstraat. De bussen konden echter in twee richtingen blijven rijden in de Grotstraat, wat de verkeersveiligheid en de doorstroming in deze drukke schoolomgeving niet ten goede kwam.\n\nNa de infrastructurele aanpassingen aan de hoek Parkstraat – Gentse Steenweg en een aantal vruchtbare gesprekken met De Lijn, zijn zij bereid hun lijnvoering aan te passen. Hierdoor wordt de Grotstraat volledig éénrichtingsverkeer, behalve voor fietsers en bromfietsers klasse A (BEV). Hierdoor zal lijn 251 van De Lijn een lusje maken via de Parkstraat en wordt de halte Grotenberge Kerk verplaatst naar de Parkstraat. Ook lijn 25 volgt een nieuwe route en rijdt niet langer via Grotenberge, maar via de Bijloke. Hierdoor wordt een nieuwe halte voorzien in de Leenstraat.\n\nDe aanpassing van het aanvullend politiereglement van 18 september 2023 zorgt voor de invoering van deze wijzigingen.\n\nStemmen\nMet algemene stemmen\n\nBESLIST:\nArtikel 1. Invoeren van éénrichtingsverkeer in de Grotstraat, uitgezonderd fietsers en bromfietsers klasse A.\n\nArtikel 1.1. Deze maatregel zal aangeduid worden door:\n\n Het plaatsen van verkeersbord F19 + onderbord M5 in het begin van de Grotstraat (voorbij het Xpunt met Parkstraat) en met leesrichting Gentse Steenweg.\n\n Het plaatsen van verkeersbord F19 + onderbord M5 in de Grotstraat (voorbij het Xpunt met August De Rouckstraat) en met leesrichting Gentse Steenweg.\n\n Het plaatsen van verkeersbord C1 + onderbord M3 in het begin van de Grotstraat (voorbij het Xpunt met Gentse Steenweg) en met leesrichting Grotenbergestraat.\n\n Het plaatsen van verkeersbord C1 + onderbord M3 in de Grotstraat (voorbij het Xpunt met August De Rouckstraat) en met leesrichting Grotenbergestraat.\n\nElektronisch ondertekend document, blz. 2 van 4. Verifieerbaar via code.esignflow.be met code 2446-1849-2518-2282\n\n\n\n Het plaatsen van verkeersbord C31b + onderbord M3 in de Gentse Steenweg (ter hoogte van het Xpunt met Grotstraat) en met leesrichting Gentse Steenweg.\n\n Het plaatsen van verkeersbord C31b + onderbord M3 in de August De Rouckstraat (ter hoogte van het Xpunt met Grotstraat) en met leesrichting Grotstraat.\n\n Het plaatsen van verkeersbord C31a + onderbord M3 in de Gentse Steenweg (ter hoogte van het Xpunt met Leenstraat) en met leesrichting Gentse Steenweg.\n\nArtikel 2. Invoeren van éénrichtingsverkeer in de Parkstraat, uitgezonderd fietsers en bromfietsers klasse A.\n\nArtikel 2.1. Deze maatregel zal aangeduid worden door:\n\n Het plaatsen van verkeersbord F19 + onderbord M5 in de Parkstraat (voorbij het Xpunt met Gentse Steenweg) en met leesrichting Grotstraat.\n\n Het plaatsen van verkeersbord F19 + onderbord M5 in de Parkstraat (voorbij de uitrit van parking Park Van Breivelde) en met leesrichting Grotstraat.\n\n Het plaatsen van verkeersbord C1 + onderbord M3 in de Parkstraat (voorbij het Xpunt met Grotstraat) en met leesrichting Gentse Steenweg.\n\n Het plaatsen van verkeersbord C1 + onderbord M3 in de Parkstraat (voorbij de uitrit van parking Park Van Breivelde) en met leesrichting Gentse Steenweg.\n\n Het plaatsen van verkeersbord C31b + M3 aan de uitrit van parking Park Van Breivelde, ter hoogte van het Xpunt met Parkstraat.\n\nArtikel 3. Invoeren van geschrankt parkeren in de Parkstraat.\n\nArtikel 3.1. Deze maatregel zal aangeduid worden door:\n\n Het plaatsen van de verkeersborden E1 + onderbord G Type Xa (begin) waar het parkeren niet toegestaan is.\n\n Het plaatsen van verkeersborden E9a + onderbord G Type Xa (begin) waar het parkeren wel toegestaan is.\n\n Het aanbrengen van markeringen die de parkeerstroken aanduiden.\n\nArtikel 4. Plaatsen van een verkeerseiland in de Parkstraat om te vermijden dat het éénrichtingsverkeer wordt genegeerd.\n\nArtikel 4.1. Deze maatregel zal aangeduid worden door:\n\n Het aanbrengen van een verdrijvingsvlak met plooibakens\n\n Het aanbrengen van een fietssuggestiestrook naast het verdrijvingsvlak voor fietsers en bromfietsers klasse A.\n\nArtikel 5. Invoeren van parkeerverbod in de Leenstraat.\n\nArtikel 5.1. Deze maatregel zal aangeduid worden door:\n\n Het plaatsen van de verkeersborden E1 tussen de Gentse Steenweg en de bushalte (onpare kant).\n\nElektronisch ondertekend document, blz. 3 van 4. Verifieerbaar via code.esignflow.be met code 2446-1849-2518-2282\n\n\n\nArtikel 6. Dit aanvullend reglement zal ter kennisgeving worden toegestuurd aan de Vlaamse Overheid, Afdeling Beleid Mobiliteit en Verkeersveiligheid, Departement Mobiliteit en Openbare Werken, Koning Albert II-laan 20 bus 2, 1000 Brussel.\n\nDe Gemeenteraad\n\ngetekend Sandra De Roeck getekend Lieve Vander Hauwert\nwnd. algemeen directeur voorzitter\n\nVoor eensluidend afschrift op 26 juni 2026\n\nSandra De Roeck Lieve Vander Hauwert\nwnd. algemeen directeur voorzitter\n\nElektronisch ondertekend document, blz. 4 van 4. Verifieerbaar via code.esignflow.be met code 2446-1849-2518-2282\n\n\nStad Zottegem\n2026-06-29T09:27:52+0000\nStad Zottegem\nEen rechtsgeldig digitaal getekend document afleveren.\n\n\nStad Zottegem\n2026-06-29T10:22:19+0000\nStad Zottegem\nEen rechtsgeldig digitaal getekend document afleveren."
+            "start": 22,
+            "end": 22,
+            "first": "Leen Borremans, raadslid",
+            "last": "Leen Borremans, raadslid",
+            "ref": "E16"
           },
           {
             "property": "S1.P11",
-            "ref": "E20",
-            "text": "Lieve Vander Hauwert, voorzitter"
+            "start": 10,
+            "end": 10,
+            "first": "Lieve Vander Hauwert, voorzitter,",
+            "last": "Lieve Vander Hauwert, voorzitter,",
+            "ref": "E20"
           },
           {
             "property": "S1.P9",
-            "ref": "E29",
-            "text": "Sandra De Roeck, wnd. algemeen directeur"
+            "start": 167,
+            "end": 167,
+            "first": "Sandra De Roeck",
+            "last": "Sandra De Roeck",
+            "ref": "E29"
           },
           {
             "property": "S1.P12",
-            "ref": "E8",
-            "text": "Gemeenteraad Zottegem"
+            "start": 4,
+            "end": 4,
+            "first": "Gemeenteraad",
+            "last": "Gemeenteraad",
+            "ref": "E8"
           },
           {
-            "property": "S1.P14",
-            "text": "22 juni 2026",
-            "value": "2026-06-22T00:00:00"
+            "property": "S1.P1",
+            "start": 28,
+            "end": 29,
+            "first": "17. Verkeer. Aanvullend politiereglement op het verkeer. De invoering van een nieuwe",
+            "last": "verkeerscirculatie in de Parkstraat en Grotstraat. Aanpassing."
+          },
+          {
+            "property": "S1.P8",
+            "start": 2,
+            "end": 168,
+            "first": "Uittreksel",
+            "last": "voorzitter"
           }
         ]
       }
